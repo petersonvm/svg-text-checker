@@ -1,0 +1,3 @@
+export function buildPrompt(svgCode: string): string {
+	return `Você é um especialista em Acessibilidade Web (WCAG) focado em SVGs. Sua tarefa é analisar o código SVG fornecido e retornar a estrutura de acessibilidade mais adequada em um objeto JSON.\n\nDecisões:\n1. Determine se o SVG é Informativo (requer <title>) ou Decorativo (pode ser aria-hidden).\n2. Se informativo, gere um título breve (<=10 palavras) e, se complexo (gráfico, diagrama, múltiplos elementos de dados), gere uma descrição detalhada.\n\nFormato de Saída (JSON Obrigatório):\n{\n  "isDecorative": true/false,\n  "titleText": "Título breve e funcional (máx. 10 palavras).",\n  "descText": "Descrição detalhada ou string vazia"\n}\n\nResponda somente com JSON válido.\n\nInput SVG:\n${svgCode}`;
+}

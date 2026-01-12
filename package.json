@@ -1,0 +1,82 @@
+{
+	"name": "svg-a11y-assist",
+	"displayName": "SVG A11Y Assist",
+	"description": "Ajuda a corrigir acessibilidade em elementos <svg> (title/desc/aria) com sugestão por IA.",
+	"version": "0.1.0",
+	"publisher": "your-publisher-id",
+	"license": "MIT",
+	"engines": {
+		"vscode": "^1.85.0"
+	},
+	"categories": ["Other"],
+	"activationEvents": [
+		"onLanguage:html",
+		"onLanguage:javascriptreact",
+		"onLanguage:typescriptreact"
+	],
+	"main": "./dist/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "svgA11yAssist.generateAccessibility",
+				"title": "Gerar Acessibilidade para SVG com IA"
+			}
+		],
+		"configuration": {
+			"title": "SVG A11Y Assist",
+			"properties": {
+				"svgA11yAssist.apiKey": {
+					"type": "string",
+					"default": "",
+						"markdownDescription": "Chave de API para o provedor de IA. Deixe vazio para modo mock (heurístico). Considere usar variável de ambiente: ${env:SVG_A11Y_API_KEY}."
+				},
+				"svgA11yAssist.endpoint": {
+					"type": "string",
+					"default": "",
+					"markdownDescription": "Endpoint HTTPS da API de IA (ex: https://api.exemplo.com/v1/completions). Vazio ativa modo mock."
+				},
+				"svgA11yAssist.model": {
+					"type": "string",
+					"default": "",
+					"markdownDescription": "Nome/id do modelo a ser usado na API (opcional)."
+				}
+			}
+		},
+		"codeActions": [
+			{
+				"language": "html",
+				"kind": "quickfix.svgA11y",
+				"title": "Gerar Acessibilidade para SVG com IA"
+			},
+			{
+				"language": "javascriptreact",
+				"kind": "quickfix.svgA11y",
+				"title": "Gerar Acessibilidade para SVG com IA"
+			},
+			{
+				"language": "typescriptreact",
+				"kind": "quickfix.svgA11y",
+				"title": "Gerar Acessibilidade para SVG com IA"
+			}
+		]
+	},
+	"scripts": {
+		"build": "node ./build/esbuild.js",
+		"dev": "node ./build/esbuild.js --watch",
+		"lint": "eslint 'src/**/*.ts'",
+		"format": "prettier --write ."
+	},
+	"devDependencies": {
+		"@types/node": "^20.11.30",
+		"@types/vscode": "^1.85.0",
+		"esbuild": "^0.21.5",
+		"eslint": "^8.57.0",
+		"prettier": "^3.2.5",
+		"typescript": "^5.4.5"
+	},
+	"pnpm": {
+		"peerDependencyRules": {
+			"ignoreMissing": ["vscode"]
+		}
+	}
+}

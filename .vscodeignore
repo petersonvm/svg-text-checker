@@ -1,0 +1,7 @@
+node_modules/.bin
+node_modules/**/*.map
+src/**
+.eslintrc.json
+.prettierrc
+build/**
+*.tsbuildinfo

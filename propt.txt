@@ -1,0 +1,82 @@
+Nome do Projeto
+SVG A11Y Assist (Acessibilidade em SVG com IA)
+
+Objetivo
+Desenvolver um plugin funcional para Visual Studio Code (VS Code) que utiliza Inteligência Artificial (IA) para prevenir falhas de acessibilidade do tipo "Missing Alternative Text" em tags <svg> em tempo real, auxiliando desenvolvedores a implementar as tags <title>, <desc> e atributos aria corretos, conforme a WCAG.
+
+Requisitos Técnicos e Estrutura
+Item	Especificação
+Linguagem:	TypeScript
+Ambiente:	Extensão VS Code (Node.js)
+Package Manager:	pnpm
+Bundler:	esbuild (Configurado para velocidade e alvo Node.js)
+Linter:	ESLint / Prettier (Padrão para TypeScript)
+API de IA:	Deve ser genérico (ex: fetch ou um SDK de IA) para ser substituído pela API real do cliente (ex: Google Gemini, OpenAI Vision). A chave de API não deve ser hard-coded, mas carregada com segurança (ex: configurações do VS Code ou variável de ambiente).
+
+Exportar para as Planilhas
+Funcionalidades do Plugin (Passos de Execução)
+O agente deve implementar um provedor de Code Action (Quick Fix) com o seguinte fluxo:
+
+Detecção de Falha (Linter):
+
+Analisar o código HTML/JSX/TSX no documento ativo em busca da tag <svg>.
+
+Identificar falha se a tag <svg> não contiver nenhuma das seguintes estruturas de acessibilidade:
+
+Tag filha <title>
+
+Tag filha <desc>
+
+Atributo aria-hidden="true"
+
+Ação Rápida:
+
+Quando a falha é detectada, oferecer uma "Quick Fix" com a descrição: "Gerar Acessibilidade para SVG com IA".
+
+Processamento da IA (Chamada de API):
+
+Extrair o conteúdo completo da tag <svg> (o código XML).
+
+Enviar o conteúdo para o serviço de IA com o Prompt Refinado (ver seção abaixo).
+
+Aplicação da Correção:
+
+Receber o Objeto JSON de Sugestão da IA.
+
+Gerar uma WorkspaceEdit para inserir o código de acessibilidade de forma estruturalmente correta:
+
+Se isDecorative: true: Inserir o atributo aria-hidden="true" na tag <svg>.
+
+Se isDecorative: false:
+
+Inserir as tags <title> e opcionalmente <desc> (se fornecida).
+
+Adicionar aria-labelledby="svg-title-id" e role="img" à tag <svg>.
+
+Garantir que a tag <title> receba um id correspondente ao aria-labelledby.
+
+Prompt Refinado para a IA (Saída Desejada)
+O agente deve construir o prompt para solicitar à IA uma análise visual e funcional do SVG, exigindo um objeto JSON como resposta.
+
+Instruções para a IA:
+"Você é um especialista em Acessibilidade Web (WCAG) focado em SVGs. Sua tarefa é analisar o código SVG fornecido e retornar a estrutura de acessibilidade mais adequada em um objeto JSON.
+
+Decisões:
+
+Função: Determine se o SVG é Informativo (requer <title>) ou Decorativo (pode ser ocultado com aria-hidden).
+
+Complexidade: Se for informativo, gere um título conciso e, se o gráfico for complexo (ex: gráfico de barras ou diagrama), gere uma descrição detalhada.
+
+Formato de Saída (JSON Obrigatório):
+
+JSON
+
+{
+  "isDecorative": true/false,
+  "titleText": "Título breve e funcional (máx. 10 palavras).",
+  "descText": "Descrição detalhada do gráfico ou da função, ou uma string vazia se for simples."
+}
+Input para a IA: [Conteúdo do código SVG extraído]
+
+Resultados Esperados
+O projeto final deve ser um repositório Git com um arquivo README.md que documenta a arquitetura, o prompt utilizado e as instruções para rodar e depurar a extensão no VS Code.
