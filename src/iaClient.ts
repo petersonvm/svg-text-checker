@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { buildPrompt, buildVisionPrompt } from './prompt';
 import { renderSvgToBase64, createVisionPayload, detectAIProvider } from './svgRenderer';
 
@@ -52,9 +54,12 @@ export class IAClient {
 
 	/**
 	 * Analisa uma tag <img> e sugere texto alt apropriado
-	 * Usa visão de IA para URLs externas, texto para caminhos locais, heurística como fallback
+	 * Usa visão de IA para URLs externas E arquivos locais, heurística como fallback
+	 * @param imgSrc - O atributo src da imagem
+	 * @param imgTag - A tag HTML completa da imagem
+	 * @param documentUri - URI do documento para resolver caminhos relativos
 	 */
-	async suggestForImg(imgSrc: string, imgTag: string): Promise<IAResponseSuggestion> {
+	async suggestForImg(imgSrc: string, imgTag: string, documentUri?: vscode.Uri): Promise<IAResponseSuggestion> {
 		// Se não tem endpoint/key, usar heurística baseada no nome do arquivo
 		if (!this.opts.endpoint || !this.opts.apiKey) {
 			return this.mockImgHeuristic(imgSrc, imgTag);
@@ -63,12 +68,18 @@ export class IAClient {
 		// Verificar se é URL externa (http/https) ou caminho local
 		const isExternalUrl = imgSrc.startsWith('http://') || imgSrc.startsWith('https://') || imgSrc.startsWith('data:');
 
-		// Se modo visão está habilitado e é URL externa, usar IA com visão
-		if (this.opts.useVision && isExternalUrl) {
-			return this.suggestImgWithVision(imgSrc, imgTag);
+		// Se modo visão está habilitado
+		if (this.opts.useVision) {
+			if (isExternalUrl) {
+				// URL externa: enviar diretamente para IA
+				return this.suggestImgWithVision(imgSrc, imgTag);
+			} else if (documentUri) {
+				// Arquivo local: ler e enviar como base64
+				return this.suggestLocalImgWithVision(imgSrc, imgTag, documentUri);
+			}
 		}
 
-		// Para qualquer caso (URL ou local), tentar análise via texto com LLM
+		// Fallback: análise via texto com LLM
 		return this.suggestImgWithText(imgSrc, imgTag);
 	}
 
@@ -146,6 +157,132 @@ export class IAClient {
 				`Falha na análise de imagem com IA, usando heurística: ${(err as Error).message}`
 			);
 			return this.mockImgHeuristic(imgSrc, imgTag);
+		}
+	}
+
+	/**
+	 * Análise de imagem local via visão (lê o arquivo e envia como base64)
+	 */
+	private async suggestLocalImgWithVision(imgSrc: string, imgTag: string, documentUri: vscode.Uri): Promise<IAResponseSuggestion> {
+		try {
+			// Resolver o caminho da imagem relativo ao documento
+			const documentDir = path.dirname(documentUri.fsPath);
+			const imagePath = path.resolve(documentDir, imgSrc);
+
+			// Verificar se o arquivo existe
+			if (!fs.existsSync(imagePath)) {
+				vscode.window.showWarningMessage(`Arquivo de imagem não encontrado: ${imagePath}`);
+				return this.mockImgHeuristic(imgSrc, imgTag);
+			}
+
+			// Ler o arquivo e converter para base64
+			const imageBuffer = fs.readFileSync(imagePath);
+			const base64Image = imageBuffer.toString('base64');
+
+			// Detectar o tipo MIME baseado na extensão
+			const ext = path.extname(imagePath).toLowerCase();
+			const mimeType = this.getMimeType(ext);
+
+			// Detectar provedor de IA
+			const provider = detectAIProvider(this.opts.endpoint!);
+
+			// Criar payload de imagem com base64
+			const imagePayload = this.buildImgBase64Payload(base64Image, mimeType, provider);
+
+			// Prompt para análise
+			const prompt = this.buildImgVisionPrompt();
+
+			// Montar body da requisição
+			const body = this.buildImgVisionRequestBody(imagePayload, prompt, provider);
+
+			let headers: Record<string, string> = {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${this.opts.apiKey}`
+			};
+
+			if (provider === 'claude') {
+				headers['anthropic-version'] = '2023-06-01';
+				headers['x-api-key'] = this.opts.apiKey!;
+				delete headers['Authorization'];
+			}
+
+			const resp = await fetch(this.opts.endpoint!, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify(body)
+			});
+
+			if (!resp.ok) {
+				const errorText = await resp.text();
+				throw new Error(`HTTP ${resp.status}: ${errorText.slice(0, 200)}`);
+			}
+
+			return this.parseVisionResponse(await resp.text(), provider);
+		} catch (err) {
+			vscode.window.showWarningMessage(
+				`Falha na análise de imagem local, usando heurística: ${(err as Error).message}`
+			);
+			return this.mockImgHeuristic(imgSrc, imgTag);
+		}
+	}
+
+	/**
+	 * Retorna o tipo MIME baseado na extensão do arquivo
+	 */
+	private getMimeType(ext: string): string {
+		const mimeTypes: Record<string, string> = {
+			'.jpg': 'image/jpeg',
+			'.jpeg': 'image/jpeg',
+			'.png': 'image/png',
+			'.gif': 'image/gif',
+			'.webp': 'image/webp',
+			'.svg': 'image/svg+xml',
+			'.bmp': 'image/bmp',
+			'.ico': 'image/x-icon'
+		};
+		return mimeTypes[ext] || 'image/jpeg';
+	}
+
+	/**
+	 * Cria payload de imagem base64 para modelos de visão
+	 */
+	private buildImgBase64Payload(
+		base64: string,
+		mimeType: string,
+		provider: 'openai' | 'claude' | 'gemini' | 'unknown'
+	): object {
+		switch (provider) {
+			case 'openai':
+				return {
+					type: 'image_url',
+					image_url: { 
+						url: `data:${mimeType};base64,${base64}`,
+						detail: 'high'
+					}
+				};
+			case 'claude':
+				return {
+					type: 'image',
+					source: {
+						type: 'base64',
+						media_type: mimeType,
+						data: base64
+					}
+				};
+			case 'gemini':
+				return {
+					inlineData: {
+						mimeType: mimeType,
+						data: base64
+					}
+				};
+			default:
+				return {
+					type: 'image_url',
+					image_url: { 
+						url: `data:${mimeType};base64,${base64}` 
+					}
+				};
 		}
 	}
 

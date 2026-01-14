@@ -400,7 +400,8 @@ async function applyFixForImg(
 					? '$(sync~spin) Enviando para IA...' 
 					: '$(sync~spin) Analisando...';
 
-				const suggestion = await iaClient.suggestForImg(target.src, target.content);
+				// Passar o URI do documento para resolver caminhos relativos de imagens locais
+				const suggestion = await iaClient.suggestForImg(target.src, target.content, doc.uri);
 
 				if (token.isCancellationRequested) return;
 
