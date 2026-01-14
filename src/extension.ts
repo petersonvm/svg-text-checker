@@ -168,10 +168,20 @@ async function applyFixForEditor(
 				// Etapa 4: Concluído
 				progress.report({ message: 'Concluído!', increment: 20 });
 				
-				// Mostrar resultado
-				const resultMessage = suggestion.isDecorative 
-					? '✅ SVG marcado como decorativo (aria-hidden="true")'
-					: `✅ Acessibilidade adicionada: "${suggestion.titleText}"`;
+				// Mostrar resultado com detalhes WCAG quando disponível
+				let resultMessage: string;
+				if (suggestion.wcagAnalysis) {
+					const wcag = suggestion.wcagAnalysis;
+					const tipo = wcag.tipoImagem.classificacao;
+					const status = wcag.conformidade.status === 'conforme' ? '✅' : '⚠️';
+					resultMessage = suggestion.isDecorative 
+						? `${status} WCAG 1.1.1: Imagem ${tipo} → aria-hidden="true"`
+						: `${status} WCAG 1.1.1: Imagem ${tipo} → "${suggestion.titleText}"`;
+				} else {
+					resultMessage = suggestion.isDecorative 
+						? '✅ SVG marcado como decorativo (aria-hidden="true")'
+						: `✅ Acessibilidade adicionada: "${suggestion.titleText}"`;
+				}
 				
 				vscode.window.showInformationMessage(resultMessage);
 			}

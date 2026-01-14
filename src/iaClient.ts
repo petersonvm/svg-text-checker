@@ -2,10 +2,28 @@ import * as vscode from 'vscode';
 import { buildPrompt, buildVisionPrompt } from './prompt';
 import { renderSvgToBase64, createVisionPayload, detectAIProvider } from './svgRenderer';
 
+/**
+ * Análise WCAG 2.2 detalhada retornada pelo LLM
+ */
+export interface WCAGAnalysis {
+	conformidade: {
+		status: 'conforme' | 'não conforme';
+		altObrigatorio: boolean;
+		justificativa: string;
+	};
+	tipoImagem: {
+		classificacao: 'Decorativa' | 'Funcional' | 'Informativa' | 'Complexa' | 'Captcha' | 'Texto em Imagem';
+		impacto: string;
+	};
+	codigoSugerido: string;
+}
+
 export interface IAResponseSuggestion {
 	isDecorative: boolean;
 	titleText?: string;
 	descText?: string;
+	/** Análise detalhada WCAG 2.2 (disponível quando LLM responde no novo formato) */
+	wcagAnalysis?: WCAGAnalysis;
 }
 
 export interface IAClientOptions {
@@ -268,7 +286,41 @@ export class IAClient {
 					|| JSON.stringify(data);
 		}
 
-		return this.parseResponse(content);
+		return this.parseWCAGResponse(content);
+	}
+
+	/**
+	 * Parse da resposta no novo formato WCAG 2.2
+	 * Converte a estrutura WCAG para o formato IAResponseSuggestion usado internamente
+	 */
+	private parseWCAGResponse(text: string): IAResponseSuggestion {
+		const match = text.match(/\{[\s\S]*\}/);
+		if (!match) throw new Error('No JSON found in response');
+		
+		const parsed = JSON.parse(match[0]);
+		
+		// Verificar se é o novo formato WCAG
+		if (parsed.conformidade && parsed.tipoImagem && parsed.recomendacao) {
+			const isDecorative = parsed.tipoImagem.classificacao === 'Decorativa';
+			return {
+				isDecorative,
+				titleText: parsed.recomendacao.altText || '',
+				descText: parsed.recomendacao.descricaoLonga || '',
+				// Campos adicionais do formato WCAG
+				wcagAnalysis: {
+					conformidade: parsed.conformidade,
+					tipoImagem: parsed.tipoImagem,
+					codigoSugerido: parsed.codigoSugerido
+				}
+			};
+		}
+		
+		// Fallback para formato antigo (compatibilidade)
+		return {
+			isDecorative: !!parsed.isDecorative,
+			titleText: parsed.titleText || '',
+			descText: parsed.descText || ''
+		};
 	}
 
 	private mockHeuristic(svgCode: string): IAResponseSuggestion {

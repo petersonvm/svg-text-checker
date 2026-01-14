@@ -1,8 +1,63 @@
 /**
+ * Prompt WCAG 2.2 para análise de conformidade de imagens/SVGs
+ * Baseado no Critério de Sucesso 1.1.1 Conteúdo Não Textual (Nível A)
+ */
+
+const WCAG_PERSONA = `🎯 **Persona e Fontes de Verdade:**
+Você é um Analista de Conformidade WCAG 2.2 Sênior, especializado em Conteúdo Não Textual. Sua única fonte de verdade para esta análise é o material técnico oficial da WCAG.`;
+
+const WCAG_TASK = `✍️ **Tarefa Principal e Critério Foco:**
+Sua tarefa é analisar o "Elemento de Design" (imagem) e o "Contexto e Função" fornecidos. O foco é garantir a conformidade com o **Critério de Sucesso 1.1.1 Conteúdo Não Textual** (Nível A).
+
+Você deve determinar:
+1. **Necessidade de Texto Alternativo:** A imagem **precisa ou não** de um texto alternativo (\`alt\`) não-vazio, dada a sua função e contexto?
+2. **Tipo de Imagem WCAG:** Qual o tipo de imagem que impacta a forma como o texto alternativo é escrito (ex: Decorativa, Funcional, Informativa, Complexa, Captcha, etc.)?
+3. **Texto Alternativo Ideal:** Qual seria o texto alternativo ideal (\`alt\`) ou a solução ARIA apropriada, seguindo as diretrizes WCAG 2.2?`;
+
+const WCAG_OUTPUT_FORMAT = `📋 **Formato de Saída e Restrições:**
+Sua resposta deve ser estruturada **estritamente em formato JSON** com os seguintes campos:
+
+{
+  "conformidade": {
+    "status": "conforme" | "não conforme",
+    "altObrigatorio": true | false,
+    "justificativa": "Declaração clara sobre conformidade com 1.1.1"
+  },
+  "tipoImagem": {
+    "classificacao": "Decorativa" | "Funcional" | "Informativa" | "Complexa" | "Captcha" | "Texto em Imagem",
+    "impacto": "Descrição de como o tipo define a necessidade do alt"
+  },
+  "recomendacao": {
+    "altText": "Texto alternativo recomendado ou string vazia para decorativas",
+    "descricaoLonga": "Descrição detalhada para imagens complexas ou string vazia",
+    "solucaoAria": "role, aria-label, aria-describedby se aplicável"
+  },
+  "codigoSugerido": "Snippet HTML/ARIA completo para implementação"
+}
+
+Responda SOMENTE com o JSON válido, sem explicações adicionais.`;
+
+/**
  * Prompt para análise via código SVG (modo texto)
  */
 export function buildPrompt(svgCode: string): string {
-	return `Você é um especialista em Acessibilidade Web (WCAG) focado em SVGs. Sua tarefa é analisar o código SVG fornecido e retornar a estrutura de acessibilidade mais adequada em um objeto JSON.\n\nDecisões:\n1. Determine se o SVG é Informativo (requer <title>) ou Decorativo (pode ser aria-hidden).\n2. Se informativo, gere um título breve (<=10 palavras) e, se complexo (gráfico, diagrama, múltiplos elementos de dados), gere uma descrição detalhada.\n\nFormato de Saída (JSON Obrigatório):\n{\n  "isDecorative": true/false,\n  "titleText": "Título breve e funcional (máx. 10 palavras).",\n  "descText": "Descrição detalhada ou string vazia"\n}\n\nResponda somente com JSON válido.\n\nInput SVG:\n${svgCode}`;
+	return `${WCAG_PERSONA}
+
+${WCAG_TASK}
+
+📌 **Contexto e Função:**
+- **Elemento de Design:** Código SVG inline em página web
+- **Tecnologia:** HTML/SVG com possível uso de ARIA
+- **Propósito:** Analisar o código SVG abaixo e determinar a melhor estratégia de acessibilidade
+
+${WCAG_OUTPUT_FORMAT}
+
+---
+
+**Input SVG para Análise:**
+\`\`\`svg
+${svgCode}
+\`\`\``;
 }
 
 /**
@@ -10,56 +65,67 @@ export function buildPrompt(svgCode: string): string {
  * Este prompt é usado quando o SVG é enviado como imagem para modelos com capacidade de visão
  */
 export function buildVisionPrompt(): string {
-	return `Você é um especialista em Acessibilidade Web (WCAG). Analise esta imagem SVG e determine a melhor abordagem de acessibilidade.
+	return `${WCAG_PERSONA}
 
-## Sua Tarefa:
-1. **Observe a imagem** e identifique o que ela representa visualmente
-2. **Determine se é decorativa** (apenas estética, sem informação) ou **informativa** (transmite dados, conceitos ou ações)
-3. **Se informativa**, crie textos alternativos apropriados
+${WCAG_TASK}
 
-## Critérios de Decisão:
-- **Decorativo**: ícones de separação, formas abstratas sem significado, elementos puramente estéticos
-- **Informativo**: gráficos de dados, ícones de ação, logos, diagramas, ilustrações com significado
+📌 **Contexto e Função:**
+- **Elemento de Design:** Imagem SVG renderizada (anexada)
+- **Tecnologia:** HTML/SVG com possível uso de ARIA
+- **Propósito:** Analisar visualmente a imagem e determinar a melhor estratégia de acessibilidade
 
-## Diretrizes para Textos:
-- **titleText**: Máximo 10 palavras. Descreva a função/propósito, não a aparência. Ex: "Gráfico de vendas mensais" (não "Barras coloridas")
-- **descText**: Apenas para SVGs complexos (gráficos, diagramas). Descreva os dados ou informações representadas. Deixe vazio para ícones simples.
+**Tipos de Imagem WCAG para Referência:**
+- **Decorativa:** Ícones de separação, formas abstratas sem significado, elementos puramente estéticos → \`alt=""\` ou \`aria-hidden="true"\`
+- **Funcional:** Botões, links, controles interativos → alt descreve a AÇÃO, não a aparência
+- **Informativa:** Logos, ilustrações com significado, fotos → alt descreve o CONTEÚDO informacional
+- **Complexa:** Gráficos de dados, diagramas, infográficos → alt resumido + descrição longa detalhada
 
-## Formato de Saída (JSON Obrigatório):
-{
-  "isDecorative": true | false,
-  "titleText": "Título breve e funcional",
-  "descText": "Descrição detalhada ou string vazia"
-}
-
-Responda SOMENTE com o JSON, sem explicações adicionais.`;
+${WCAG_OUTPUT_FORMAT}`;
 }
 
 /**
  * Prompt para análise de imagens genéricas (PNG, JPG, etc.) - não apenas SVG
  */
 export function buildImageAnalysisPrompt(context?: string): string {
-	const contextInfo = context ? `\n\nContexto adicional: ${context}` : '';
+	const contextInfo = context 
+		? `\n📌 **Contexto Adicional Fornecido:** ${context}` 
+		: '';
 	
-	return `Você é um especialista em Acessibilidade Web (WCAG). Analise esta imagem e gere textos alternativos apropriados para uso em aplicações web.
+	return `${WCAG_PERSONA}
 
-## Sua Tarefa:
-1. **Descreva o conteúdo visual** da imagem
-2. **Identifique o propósito** provável da imagem no contexto web
-3. **Gere textos alternativos** seguindo boas práticas de acessibilidade
+${WCAG_TASK}
 
-## Diretrizes:
-- Se a imagem parece ser **decorativa** (background, separador visual), indique isso
-- Para imagens **informativas**, forneça:
-  - Um texto alternativo curto (alt text) de até 125 caracteres
-  - Uma descrição longa se a imagem for complexa (gráficos, infográficos)
+📌 **Contexto e Função:**
+- **Elemento de Design:** Imagem genérica (PNG/JPG/GIF/WebP)
+- **Tecnologia:** HTML com atributo alt e possível uso de ARIA${contextInfo}
 
-## Formato de Saída (JSON Obrigatório):
-{
-  "isDecorative": true | false,
-  "titleText": "Texto alternativo curto e funcional",
-  "descText": "Descrição detalhada para imagens complexas ou string vazia"
-}${contextInfo}
+**Tipos de Imagem WCAG para Referência:**
+- **Decorativa:** Backgrounds, separadores visuais, elementos estéticos → \`alt=""\`
+- **Funcional:** Imagem como link ou botão → alt descreve a AÇÃO/destino
+- **Informativa:** Fotos, ilustrações com significado → alt descreve o CONTEÚDO
+- **Complexa:** Gráficos, infográficos → alt resumido + \`aria-describedby\` para descrição longa
+- **Texto em Imagem:** Texto renderizado como imagem → alt reproduz o texto exato
 
-Responda SOMENTE com o JSON, sem explicações adicionais.`;
+${WCAG_OUTPUT_FORMAT}`;
+}
+
+/**
+ * Interface para resposta estruturada do LLM no formato WCAG
+ */
+export interface WCAGAnalysisResponse {
+	conformidade: {
+		status: 'conforme' | 'não conforme';
+		altObrigatorio: boolean;
+		justificativa: string;
+	};
+	tipoImagem: {
+		classificacao: 'Decorativa' | 'Funcional' | 'Informativa' | 'Complexa' | 'Captcha' | 'Texto em Imagem';
+		impacto: string;
+	};
+	recomendacao: {
+		altText: string;
+		descricaoLonga: string;
+		solucaoAria?: string;
+	};
+	codigoSugerido: string;
 }
