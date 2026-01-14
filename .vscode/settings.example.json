@@ -1,0 +1,28 @@
+{
+	// SVG A11Y Assist - Configurações
+	// Copie este arquivo para .vscode/settings.json e configure sua API key
+	
+	// ============================================
+	// OPÇÃO 1: OpenAI (GPT-4o com visão)
+	// ============================================
+	"svgA11yAssist.endpoint": "https://api.openai.com/v1/chat/completions",
+	"svgA11yAssist.model": "gpt-4o",
+	"svgA11yAssist.apiKey": "SUA_API_KEY_AQUI",
+	"svgA11yAssist.useVision": true
+
+	// ============================================
+	// OPÇÃO 2: Anthropic Claude (descomente para usar)
+	// ============================================
+	// "svgA11yAssist.endpoint": "https://api.anthropic.com/v1/messages",
+	// "svgA11yAssist.model": "claude-3-5-sonnet-20241022",
+	// "svgA11yAssist.apiKey": "SUA_API_KEY_AQUI",
+	// "svgA11yAssist.useVision": true
+
+	// ============================================
+	// OPÇÃO 3: Google Gemini (descomente para usar)
+	// ============================================
+	// "svgA11yAssist.endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent",
+	// "svgA11yAssist.model": "gemini-1.5-pro",
+	// "svgA11yAssist.apiKey": "SUA_API_KEY_AQUI",
+	// "svgA11yAssist.useVision": true
+}

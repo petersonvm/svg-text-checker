@@ -33,12 +33,17 @@
 				"svgA11yAssist.endpoint": {
 					"type": "string",
 					"default": "",
-					"markdownDescription": "Endpoint HTTPS da API de IA (ex: https://api.exemplo.com/v1/completions). Vazio ativa modo mock."
+					"markdownDescription": "Endpoint HTTPS da API de IA (ex: https://api.openai.com/v1/chat/completions). Vazio ativa modo mock."
 				},
 				"svgA11yAssist.model": {
 					"type": "string",
 					"default": "",
-					"markdownDescription": "Nome/id do modelo a ser usado na API (opcional)."
+					"markdownDescription": "Nome/id do modelo a ser usado na API (ex: gpt-4o, claude-3-5-sonnet-20241022, gemini-1.5-pro)."
+				},
+				"svgA11yAssist.useVision": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "Habilita análise visual usando modelos multimodais (GPT-4V, Claude Vision, Gemini Vision). Quando ativado, o SVG é renderizado como imagem e enviado para análise visual, permitindo uma compreensão mais precisa do conteúdo gráfico."
 				}
 			}
 		},

@@ -3,3 +3,6 @@ dist/
 out/
 *.vsix
 .DS_Store
+
+# Configurações locais com API keys sensíveis
+.vscode/settings.json

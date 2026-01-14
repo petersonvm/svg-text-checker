@@ -4,70 +4,209 @@
   <meta charset="UTF-8" />
   <title>Teste - SVG A11Y Assist</title>
   <style>
-    body { font-family: system-ui, sans-serif; margin: 2rem; }
-    section { margin-bottom: 3rem; }
-    svg { border: 1px solid #ccc; margin: 0.5rem; }
-    h2 { font-size: 1.1rem; margin-top: 2rem; }
+    body { font-family: system-ui, sans-serif; margin: 2rem; background: #f5f5f5; }
+    section { margin-bottom: 2rem; padding: 1.5rem; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    svg { border: 1px solid #ccc; margin: 0.5rem; background: white; }
+    h1 { color: #333; border-bottom: 2px solid #0099ff; padding-bottom: 0.5rem; }
+    h2 { font-size: 1.1rem; margin-top: 0; color: #555; }
+    .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; }
+    .warning { background: #fff3cd; color: #856404; }
+    .ok { background: #d4edda; color: #155724; }
+    .description { color: #666; font-size: 0.9rem; margin-bottom: 1rem; }
+    hr { border: none; border-top: 1px dashed #ddd; margin: 2rem 0; }
   </style>
 </head>
 <body>
-  <h1>Casos de Teste para Extensão SVG A11Y Assist</h1>
+  <h1>🧪 Casos de Teste - SVG A11Y Assist</h1>
+  <p>Esta página contém exemplos de SVGs para testar a extensão. Os casos marcados com <span class="status warning">⚠️ DETECTA</span> devem gerar um warning e oferecer Quick Fix.</p>
 
+  <hr>
+  <h2>📋 CASOS QUE DEVEM SER DETECTADOS (Gerar Warning)</h2>
+
+  <!-- ============================================ -->
+  <!-- CASO 1: SVG básico sem nenhuma acessibilidade -->
+  <!-- ============================================ -->
   <section>
-    <h2>1. SVG sem acessibilidade (deverá gerar diagnóstico)</h2>
-    <svg width="80" height="80" viewBox="0 0 80 80" aria-hidden="true">
+    <h2><span class="status warning">⚠️ DETECTA</span> 1. SVG básico sem acessibilidade</h2>
+    <p class="description">SVG simples sem title, desc ou aria-hidden. O plugin deve detectar e sugerir correção.</p>
+    <svg width="80" height="80" viewBox="0 0 80 80" >
       <circle cx="40" cy="40" r="30" fill="#0099ff" />
     </svg>
   </section>
 
+  <!-- ============================================ -->
+  <!-- CASO 2: Ícone de ação sem acessibilidade -->
+  <!-- ============================================ -->
   <section>
-    <h2>2. SVG já decorativo (não deve gerar diagnóstico)</h2>
+    <h2><span class="status warning">⚠️ DETECTA</span> 2. Ícone de menu (hamburger) sem acessibilidade</h2>
+    <p class="description">Ícone que representa uma ação - deve ter texto alternativo.</p>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO 3: Ícone de fechar sem acessibilidade -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> 3. Ícone de fechar (X) sem acessibilidade</h2>
+    <p class="description">Ícone de ação comum que precisa de descrição.</p>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" >
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO 4: Gráfico de barras sem acessibilidade -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> 4. Gráfico de barras sem acessibilidade</h2>
+    <p class="description">Gráfico complexo que precisa de title E desc para ser acessível.</p>
+    <svg width="200" height="120" viewBox="0 0 200 120" >
+      <rect x="10" y="60" width="30" height="50" fill="#4caf50" />
+      <rect x="50" y="30" width="30" height="80" fill="#2196f3" />
+      <rect x="90" y="45" width="30" height="65" fill="#ff9800" />
+      <rect x="130" y="20" width="30" height="90" fill="#e91e63" />
+      <line x1="5" y1="110" x2="170" y2="110" stroke="#333" stroke-width="2"/>
+      <line x1="10" y1="5" x2="10" y2="115" stroke="#333" stroke-width="2"/>
+    </svg>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO 5: Logo sem acessibilidade -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> 5. Logo da empresa sem acessibilidade</h2>
+    <p class="description">Logos são informativos e precisam de texto alternativo.</p>
+    <svg width="120" height="40" viewBox="0 0 120 40">
+      <rect x="0" y="0" width="120" height="40" fill="#1a1a2e" rx="5"/>
+      <text x="10" y="28" font-family="Arial" font-size="20" fill="white" font-weight="bold">ACME</text>
+      <circle cx="100" cy="20" r="12" fill="#e94560"/>
+    </svg>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO 6: Ícone de busca sem acessibilidade -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> 6. Ícone de busca (lupa) sem acessibilidade</h2>
+    <p class="description">Ícone funcional que indica ação de pesquisa.</p>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO 7: Diagrama/Fluxograma sem acessibilidade -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> 7. Diagrama de fluxo sem acessibilidade</h2>
+    <p class="description">Diagramas são complexos e precisam de descrição detalhada.</p>
+    <svg width="250" height="100" viewBox="0 0 250 100" role="img">
+      <rect x="10" y="30" width="60" height="40" fill="#e3f2fd" stroke="#2196f3" stroke-width="2" rx="5"/>
+      <text x="25" y="55" font-size="12" fill="#333">Início</text>
+      <line x1="70" y1="50" x2="100" y2="50" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+      <rect x="100" y="30" width="60" height="40" fill="#fff3e0" stroke="#ff9800" stroke-width="2" rx="5"/>
+      <text x="108" y="55" font-size="12" fill="#333">Processo</text>
+      <line x1="160" y1="50" x2="190" y2="50" stroke="#333" stroke-width="2"/>
+      <rect x="190" y="30" width="50" height="40" fill="#e8f5e9" stroke="#4caf50" stroke-width="2" rx="5"/>
+      <text x="203" y="55" font-size="12" fill="#333">Fim</text>
+    </svg>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO 8: Ícone de coração/favorito sem acessibilidade -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> 8. Ícone de favorito (coração) sem acessibilidade</h2>
+    <p class="description">Ícone de ação para adicionar aos favoritos.</p>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="#e91e63">
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+    </svg>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO 9: Gráfico de pizza sem acessibilidade -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> 9. Gráfico de pizza sem acessibilidade</h2>
+    <p class="description">Gráficos de dados precisam de descrição para usuários de leitor de tela.</p>
+    <svg width="150" height="150" viewBox="0 0 150 150">
+      <circle cx="75" cy="75" r="60" fill="#e3f2fd"/>
+      <path d="M75 75 L75 15 A60 60 0 0 1 129.5 97.5 Z" fill="#2196f3"/>
+      <path d="M75 75 L129.5 97.5 A60 60 0 0 1 20.5 97.5 Z" fill="#4caf50"/>
+      <path d="M75 75 L20.5 97.5 A60 60 0 0 1 75 15 Z" fill="#ff9800"/>
+    </svg>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO 10: Ícone de notificação/sino sem acessibilidade -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> 10. Ícone de notificação sem acessibilidade</h2>
+    <p class="description">Ícone que indica notificações pendentes.</p>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      <circle cx="18" cy="5" r="3" fill="#e91e63" stroke="none"/>
+    </svg>
+  </section>
+
+  <hr>
+  <h2>✅ CASOS QUE NÃO DEVEM SER DETECTADOS (Já acessíveis)</h2>
+
+  <!-- ============================================ -->
+  <!-- CASO OK 1: SVG decorativo com aria-hidden -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status ok">✅ OK</span> SVG decorativo com aria-hidden="true"</h2>
+    <p class="description">SVG marcado como decorativo - não precisa de texto alternativo.</p>
     <svg aria-hidden="true" width="40" height="40" viewBox="0 0 40 40">
       <rect x="5" y="5" width="30" height="30" fill="#999" />
     </svg>
   </section>
 
+  <!-- ============================================ -->
+  <!-- CASO OK 2: SVG com title -->
+  <!-- ============================================ -->
   <section>
-    <h2>3. SVG já com title (não deve gerar diagnóstico)</h2>
+    <h2><span class="status ok">✅ OK</span> SVG com &lt;title&gt;</h2>
+    <p class="description">SVG possui elemento title - acessível para leitores de tela.</p>
     <svg width="100" height="40" viewBox="0 0 100 40">
       <title>Logo Exemplo</title>
       <text x="5" y="25" font-size="20">ABC</text>
     </svg>
   </section>
 
+  <!-- ============================================ -->
+  <!-- CASO OK 3: SVG com title e desc -->
+  <!-- ============================================ -->
   <section>
-    <h2>4. SVG potencialmente complexo (deve gerar diagnóstico)</h2>
-    <svg width="200" height="120" viewBox="0 0 200 120">
-      <rect x="10" y="10" width="20" height="60" fill="#4caf50" />
-      <rect x="40" y="10" width="20" height="90" fill="#2196f3" />
-      <rect x="70" y="10" width="20" height="30" fill="#ff9800" />
-      <line x1="5" y1="110" x2="190" y2="110" stroke="#333" />
-      <line x1="10" y1="5" x2="10" y2="115" stroke="#333" />
-    </svg>
-  </section>
-
-  <section>
-    <h2>5. Vários SVGs em linha (primeiro sem acessibilidade)</h2>
-    <div>
-      <svg width="24" height="24" viewBox="0 0 24 24"><path d="M3 12h18" stroke="#333" stroke-width="2"/></svg>
-      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#e91e63"/></svg>
-      <svg width="24" height="24" viewBox="0 0 24 24"><title>Ícone Check</title><path d="M4 12l5 5 11-11" stroke="#2e7d32" stroke-width="2" fill="none"/></svg>
-    </div>
-  </section>
-
-  <section>
-    <h2>6. SVG com desc já presente (não deve gerar diagnóstico)</h2>
-    <svg width="120" height="60" viewBox="0 0 120 60">
-      <title>Gráfico simples</title>
-      <desc>Barras mostrando comparação</desc>
+    <h2><span class="status ok">✅ OK</span> SVG com &lt;title&gt; e &lt;desc&gt;</h2>
+    <p class="description">SVG completo com título e descrição - ideal para gráficos complexos.</p>
+    <svg width="120" height="60" viewBox="0 0 120 60" role="img" aria-labelledby="chart-title chart-desc">
+      <title id="chart-title">Gráfico de comparação</title>
+      <desc id="chart-desc">Barras mostrando valores relativos de duas categorias</desc>
       <rect x="10" y="20" width="20" height="30" fill="#03a9f4" />
       <rect x="40" y="10" width="20" height="40" fill="#8bc34a" />
     </svg>
   </section>
 
+  <!-- ============================================ -->
+  <!-- CASO OK 4: SVG com apenas desc -->
+  <!-- ============================================ -->
   <section>
-    <h2>7. SVG sem acessibilidade em um container JSX-like (para copiar em .tsx)</h2>
-    <pre><code>{`<svg width="50" height="50"><rect width="50" height="50" fill="#222"/></svg>`}</code></pre>
+    <h2><span class="status ok">✅ OK</span> SVG com apenas &lt;desc&gt;</h2>
+    <p class="description">SVG com descrição - também é considerado acessível.</p>
+    <svg width="60" height="60" viewBox="0 0 60 60">
+      <desc>Círculo azul decorativo</desc>
+      <circle cx="30" cy="30" r="25" fill="#2196f3"/>
+    </svg>
   </section>
+
 </body>
 </html>

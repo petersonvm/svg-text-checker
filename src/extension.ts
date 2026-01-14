@@ -111,16 +111,76 @@ async function applyFixForEditor(
 		}
 	}
 
-	const progressTitle = 'Gerando acessibilidade (IA)';
-	await vscode.window.withProgress(
-		{ location: vscode.ProgressLocation.Notification, title: progressTitle, cancellable: false },
-		async () => {
-			const suggestion = await iaClient.suggestForSvg(target.content);
-			const edit = buildWorkspaceEditForSuggestion(doc, target, suggestion);
-			await vscode.workspace.applyEdit(edit);
-			await doc.save();
-		}
-	);
+	// Criar item na barra de status
+	const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+	statusBarItem.text = '$(sync~spin) Consultando IA...';
+	statusBarItem.tooltip = 'SVG A11Y Assist está analisando o SVG com IA';
+	statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+	statusBarItem.show();
+
+	const config = vscode.workspace.getConfiguration('svgA11yAssist');
+	const useVision = config.get<boolean>('useVision') ?? false;
+	const progressTitle = useVision 
+		? '$(eye) Analisando SVG com IA (Modo Visão)...' 
+		: '$(hubot) Analisando SVG com IA...';
+
+	try {
+		await vscode.window.withProgress(
+			{ 
+				location: vscode.ProgressLocation.Notification, 
+				title: 'SVG A11Y Assist',
+				cancellable: true 
+			},
+			async (progress, token) => {
+				// Etapa 1: Preparando
+				progress.report({ message: 'Preparando análise...', increment: 10 });
+				
+				if (token.isCancellationRequested) {
+					return;
+				}
+
+				// Etapa 2: Enviando para IA
+				progress.report({ 
+					message: useVision 
+						? 'Renderizando SVG e enviando para IA...' 
+						: 'Enviando código para IA...', 
+					increment: 20 
+				});
+				
+				statusBarItem.text = useVision 
+					? '$(sync~spin) Renderizando SVG...' 
+					: '$(sync~spin) Enviando para IA...';
+
+				const suggestion = await iaClient.suggestForSvg(target.content);
+
+				if (token.isCancellationRequested) {
+					return;
+				}
+
+				// Etapa 3: Aplicando correção
+				progress.report({ message: 'Aplicando correção...', increment: 50 });
+				statusBarItem.text = '$(check) Aplicando correção...';
+
+				const edit = buildWorkspaceEditForSuggestion(doc, target, suggestion);
+				await vscode.workspace.applyEdit(edit);
+				await doc.save();
+
+				// Etapa 4: Concluído
+				progress.report({ message: 'Concluído!', increment: 20 });
+				
+				// Mostrar resultado
+				const resultMessage = suggestion.isDecorative 
+					? '✅ SVG marcado como decorativo (aria-hidden="true")'
+					: `✅ Acessibilidade adicionada: "${suggestion.titleText}"`;
+				
+				vscode.window.showInformationMessage(resultMessage);
+			}
+		);
+	} catch (error) {
+		vscode.window.showErrorMessage(`Erro ao processar SVG: ${(error as Error).message}`);
+	} finally {
+		statusBarItem.dispose();
+	}
 }
 
 import type { IAResponseSuggestion } from './iaClient';
