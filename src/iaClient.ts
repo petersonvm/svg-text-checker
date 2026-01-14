@@ -441,17 +441,50 @@ export class IAClient {
 		const circleCount = (svgCode.match(/<circle\b/gi) || []).length;
 		const pathCount = (svgCode.match(/<path\b/gi) || []).length;
 		const rectCount = (svgCode.match(/<rect\b/gi) || []).length;
+		const textCount = (svgCode.match(/<text\b/gi) || []).length;
+
+		// =====================================================
+		// FASE 3A: Gráficos e diagramas (PRIORIDADE sobre ícones)
+		// =====================================================
 		
-		// 🔍 Lupa/Busca: 1 círculo + 1 linha (cabo)
-		if (circleCount === 1 && lineCount === 1 && pathCount === 0) {
-			// Verificar se a linha é diagonal (cabo da lupa)
-			if (/<line[^>]+x1\s*=\s*["']?\d+["']?[^>]+x2\s*=\s*["']?\d+["']?/i.test(svgCode)) {
-				return { title: 'Pesquisar', desc: '' };
+		// 📊 Gráfico de barras: múltiplos rects (barras) + linhas (eixos)
+		if (rectCount >= 3 && lineCount >= 1) {
+			return { title: 'Gráfico de barras', desc: 'Gráfico de barras comparando valores de diferentes categorias.' };
+		}
+
+		// 📊 Gráfico de barras alternativo: múltiplos rects sem linhas
+		if (rectCount >= 4 && lineCount === 0 && pathCount === 0) {
+			return { title: 'Gráfico de barras', desc: 'Gráfico de barras comparando valores.' };
+		}
+
+		// 📈 Gráfico de pizza: múltiplos paths com arcos (A comando em SVG)
+		if (pathCount >= 3) {
+			const paths = svgCode.match(/d\s*=\s*["'][^"']+["']/gi) || [];
+			let arcPaths = 0;
+			for (const p of paths) {
+				if (/\sA\s*\d/i.test(p)) arcPaths++;
+			}
+			if (arcPaths >= 2) {
+				return { title: 'Gráfico de distribuição', desc: 'Gráfico circular mostrando proporções de diferentes categorias.' };
 			}
 		}
 
-		// ☰ Menu hamburger: exatamente 3 linhas horizontais
-		if (lineCount === 3 && pathCount === 0 && circleCount === 0) {
+		// 📋 Diagrama de fluxo: rects + linhas + texto
+		if (rectCount >= 2 && lineCount >= 1 && textCount >= 1) {
+			return { title: 'Diagrama de fluxo', desc: 'Diagrama mostrando etapas de um processo.' };
+		}
+
+		// =====================================================
+		// FASE 3B: Ícones simples (apenas se não for gráfico)
+		// =====================================================
+		
+		// 🔍 Lupa/Busca: 1 círculo + 1 linha (cabo) - SEM rects
+		if (circleCount === 1 && lineCount === 1 && pathCount === 0 && rectCount === 0) {
+			return { title: 'Pesquisar', desc: '' };
+		}
+
+		// ☰ Menu hamburger: exatamente 3 linhas horizontais - SEM rects
+		if (lineCount === 3 && pathCount === 0 && circleCount === 0 && rectCount === 0) {
 			// Verificar se as linhas são horizontais (y1 == y2 para cada uma)
 			const lines = svgCode.match(/<line[^>]+>/gi) || [];
 			let horizontalLines = 0;
@@ -467,8 +500,8 @@ export class IAClient {
 			}
 		}
 
-		// ✕ Fechar: exatamente 2 linhas cruzando em X
-		if (lineCount === 2 && pathCount === 0 && circleCount === 0) {
+		// ✕ Fechar: exatamente 2 linhas cruzando em X - SEM rects
+		if (lineCount === 2 && pathCount === 0 && circleCount === 0 && rectCount === 0) {
 			return { title: 'Fechar', desc: '' };
 		}
 
@@ -576,32 +609,6 @@ export class IAClient {
 			if (pattern.test(svgCode)) {
 				return { title, desc: desc || '' };
 			}
-		}
-
-		// =====================================================
-		// FASE 5: Gráficos e diagramas
-		// =====================================================
-		
-		// Gráfico de pizza - múltiplos paths com arcos (A comando em SVG)
-		if (pathCount >= 3) {
-			const paths = svgCode.match(/d\s*=\s*["'][^"']+["']/gi) || [];
-			let arcPaths = 0;
-			for (const p of paths) {
-				if (/\sA\s*\d/i.test(p)) arcPaths++;
-			}
-			if (arcPaths >= 2) {
-				return { title: 'Gráfico de distribuição', desc: 'Gráfico circular mostrando proporções de diferentes categorias.' };
-			}
-		}
-
-		// Gráfico de barras - múltiplos rects verticais
-		if (rectCount >= 3 && lineCount <= 2) {
-			return { title: 'Gráfico de barras', desc: 'Gráfico de barras comparando valores.' };
-		}
-
-		// Diagrama de fluxo - rects + linhas conectando
-		if (rectCount >= 2 && lineCount >= 1 && /<text/i.test(svgCode)) {
-			return { title: 'Diagrama de fluxo', desc: 'Diagrama mostrando etapas de um processo.' };
 		}
 
 		return null;
