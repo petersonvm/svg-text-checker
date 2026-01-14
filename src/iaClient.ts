@@ -52,7 +52,7 @@ export class IAClient {
 
 	/**
 	 * Analisa uma tag <img> e sugere texto alt apropriado
-	 * Usa visão de IA quando disponível, caso contrário usa heurística baseada no src
+	 * Usa visão de IA para URLs externas, texto para caminhos locais, heurística como fallback
 	 */
 	async suggestForImg(imgSrc: string, imgTag: string): Promise<IAResponseSuggestion> {
 		// Se não tem endpoint/key, usar heurística baseada no nome do arquivo
@@ -60,13 +60,134 @@ export class IAClient {
 			return this.mockImgHeuristic(imgSrc, imgTag);
 		}
 
-		// Se modo visão está habilitado e a imagem é acessível, usar IA com visão
-		if (this.opts.useVision && imgSrc) {
+		// Verificar se é URL externa (http/https) ou caminho local
+		const isExternalUrl = imgSrc.startsWith('http://') || imgSrc.startsWith('https://') || imgSrc.startsWith('data:');
+
+		// Se modo visão está habilitado e é URL externa, usar IA com visão
+		if (this.opts.useVision && isExternalUrl) {
 			return this.suggestImgWithVision(imgSrc, imgTag);
 		}
 
-		// Modo texto: usar heurística baseada no src
-		return this.mockImgHeuristic(imgSrc, imgTag);;
+		// Para qualquer caso (URL ou local), tentar análise via texto com LLM
+		return this.suggestImgWithText(imgSrc, imgTag);
+	}
+
+	/**
+	 * Análise de imagem via prompt de texto (envia nome do arquivo/URL para o LLM)
+	 */
+	private async suggestImgWithText(imgSrc: string, imgTag: string): Promise<IAResponseSuggestion> {
+		try {
+			const provider = detectAIProvider(this.opts.endpoint!);
+			const prompt = this.buildImgTextPrompt(imgSrc, imgTag);
+			
+			// Montar body no formato correto para cada provedor
+			let body: object;
+			let headers: Record<string, string> = {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${this.opts.apiKey}`
+			};
+
+			switch (provider) {
+				case 'openai':
+					body = {
+						model: this.opts.model || 'gpt-4o',
+						messages: [
+							{ role: 'user', content: prompt }
+						],
+						max_tokens: 500
+					};
+					break;
+				
+				case 'claude':
+					headers['anthropic-version'] = '2023-06-01';
+					headers['x-api-key'] = this.opts.apiKey!;
+					delete (headers as Record<string, string | undefined>)['Authorization'];
+					body = {
+						model: this.opts.model || 'claude-3-5-sonnet-20241022',
+						max_tokens: 500,
+						messages: [
+							{ role: 'user', content: prompt }
+						]
+					};
+					break;
+				
+				case 'gemini':
+					body = {
+						contents: [
+							{ parts: [{ text: prompt }] }
+						],
+						generationConfig: { maxOutputTokens: 500 }
+					};
+					break;
+				
+				default:
+					body = {
+						model: this.opts.model || 'auto',
+						messages: [
+							{ role: 'user', content: prompt }
+						]
+					};
+			}
+
+			const resp = await fetch(this.opts.endpoint!, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify(body)
+			});
+
+			if (!resp.ok) {
+				const errorText = await resp.text();
+				throw new Error(`HTTP ${resp.status}: ${errorText.slice(0, 200)}`);
+			}
+
+			return this.parseVisionResponse(await resp.text(), provider);
+		} catch (err) {
+			vscode.window.showWarningMessage(
+				`Falha na análise de imagem com IA, usando heurística: ${(err as Error).message}`
+			);
+			return this.mockImgHeuristic(imgSrc, imgTag);
+		}
+	}
+
+	/**
+	 * Prompt para análise de imagem via texto (sem visão)
+	 */
+	private buildImgTextPrompt(imgSrc: string, imgTag: string): string {
+		// Extrair nome do arquivo
+		const fileName = imgSrc.split('/').pop()?.split('?')[0] || imgSrc;
+		
+		return `Você é um Analista de Conformidade WCAG 2.2 Sênior especializado em acessibilidade web.
+
+TAREFA:
+Analise o caminho/URL desta imagem e a tag HTML para sugerir um texto alternativo (alt) apropriado.
+
+INFORMAÇÕES DA IMAGEM:
+- Caminho/URL: ${imgSrc}
+- Nome do arquivo: ${fileName}
+- Tag HTML completa: ${imgTag}
+
+DETERMINE:
+1. Se a imagem é DECORATIVA (não transmite informação)
+2. Se é INFORMATIVA (transmite conteúdo importante)
+3. Se é um ÍCONE funcional (indica ação)
+4. Se é um LOGO (identidade visual)
+5. Se é uma IMAGEM COMPLEXA (gráfico, diagrama)
+
+RESPONDA APENAS COM JSON:
+{
+  "isDecorative": boolean,
+  "titleText": "texto alt sugerido (vazio se decorativa)",
+  "descText": "descrição longa se for imagem complexa"
+}
+
+REGRAS IMPORTANTES:
+- Se o nome contém "icon", "spacer", "background", "decorative", "pattern" → provavelmente decorativa
+- Se o nome contém "logo" → extraia o nome da marca e use "Logo [marca]"
+- Se o nome contém "banner", "hero", "product" → descreva o propósito
+- Se o nome é um hash/código (ex: "abc123def.jpg") → use "[Descrição da imagem]" como placeholder
+- Texto alt deve ser conciso (max 125 caracteres)
+- Não comece com "Imagem de" ou "Foto de"
+- Seja específico e descreva o PROPÓSITO da imagem, não sua aparência`;
 	}
 
 	/**
