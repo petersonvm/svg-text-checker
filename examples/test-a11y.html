@@ -386,120 +386,132 @@
   <h2>📋 IMAGENS QUE DEVEM SER DETECTADAS (Gerar Warning)</h2>
 
   <!-- ============================================ -->
-  <!-- CASO IMG 1: Imagem sem alt -->
+  <!-- CASO IMG 1: Imagem local com nome hash -->
+  <!-- Usa: img/1602180423fge0i9cidg.jpg (arquivo real) -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> IMG 1. Imagem simples sem alt</h2>
-    <p class="description">Imagem de produto sem atributo alt.</p>
-    <p class="expected">✨ Esperado: alt baseado no nome do arquivo</p>
-    <img src="img/produto-celular-samsung.jpg" width="200">
+    <h2><span class="status warning">⚠️ DETECTA</span> IMG 1. Imagem com nome hash (arquivo real)</h2>
+    <p class="description">Imagem com nome gerado automaticamente - não há como inferir o conteúdo.</p>
+    <p class="expected">✨ Esperado: alt="[Descrição da imagem]" (placeholder para revisão)</p>
+    <img src="img/1602180423fge0i9cidg.jpg" width="200">
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO IMG 2: Logo sem alt -->
+  <!-- CASO IMG 2: Logo Toyota (arquivo real) -->
+  <!-- Usa: img/toyota.png -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> IMG 2. Logo da empresa sem alt</h2>
+    <h2><span class="status warning">⚠️ DETECTA</span> IMG 2. Logo Toyota sem alt (arquivo real)</h2>
     <p class="description">Logo que deveria ter texto alternativo descritivo.</p>
-    <p class="expected">✨ Esperado: alt="Logo Toyota" (extraído do nome)</p>
-    <img src="img/logo-toyota.png" width="120">
+    <p class="expected">✨ Esperado: alt="Toyota" (extraído do nome do arquivo)</p>
+    <img src="img/toyota.png" width="120">
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO IMG 3: Ícone de busca sem alt -->
+  <!-- CASO IMG 3: Imagem de URL externa sem alt -->
+  <!-- Usa: URL externa real -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> IMG 3. Ícone de busca sem alt</h2>
-    <p class="description">Ícone funcional que precisa de texto alternativo.</p>
+    <h2><span class="status warning">⚠️ DETECTA</span> IMG 3. Imagem de URL externa sem alt</h2>
+    <p class="description">Imagem carregada de URL externa. Com modo visão ativado, a IA pode analisar o conteúdo.</p>
+    <p class="expected">✨ Esperado: Com visão IA = descrição do conteúdo | Sem IA = "Arc raiders expedition will change"</p>
+    <img src="https://frvr.com/wp-content/uploads/2026/01/arc-raiders-expedition-will-change.jpg" width="400">
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO IMG 4: Ícone simulado (arquivo fictício) -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> IMG 4. Ícone de busca (nome indica função)</h2>
+    <p class="description">Ícone funcional detectado pelo padrão "icon-search" no nome.</p>
     <p class="expected">✨ Esperado: alt="Pesquisar"</p>
     <img src="img/icon-search.svg" width="24" height="24">
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO IMG 4: Banner promocional sem alt -->
+  <!-- CASO IMG 5: Banner simulado -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> IMG 4. Banner promocional sem alt</h2>
-    <p class="description">Banner que comunica promoção importante.</p>
-    <p class="expected">✨ Esperado: alt="Banner promocional" ou baseado no nome</p>
+    <h2><span class="status warning">⚠️ DETECTA</span> IMG 5. Banner promocional</h2>
+    <p class="description">Banner detectado pelo padrão "banner-" no nome.</p>
+    <p class="expected">✨ Esperado: alt="Banner promocional: black friday"</p>
     <img src="img/banner-black-friday.jpg" width="400">
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO IMG 5: Foto de perfil sem alt -->
+  <!-- CASO IMG 6: Logo com padrão logo- -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> IMG 5. Foto de perfil/avatar sem alt</h2>
-    <p class="description">Imagem de usuário que precisa de descrição.</p>
-    <p class="expected">✨ Esperado: alt="Foto de perfil"</p>
-    <img src="img/avatar-user-profile.png" width="60" height="60">
+    <h2><span class="status warning">⚠️ DETECTA</span> IMG 6. Logo com prefixo "logo-"</h2>
+    <p class="description">Logo detectado pelo padrão "logo-" no nome do arquivo.</p>
+    <p class="expected">✨ Esperado: alt="Logo Acme"</p>
+    <img src="img/logo-acme.png" width="120">
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO IMG 6: Gráfico sem alt -->
+  <!-- CASO IMG 7: Carrinho de compras -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> IMG 6. Gráfico/infográfico sem alt</h2>
-    <p class="description">Imagem complexa que precisa de descrição detalhada.</p>
-    <p class="expected">✨ Esperado: alt="Gráfico" ou descrição baseada no nome</p>
-    <img src="img/chart-vendas-2024.png" width="300">
-  </section>
-
-  <!-- ============================================ -->
-  <!-- CASO IMG 7: Imagem com nome genérico -->
-  <!-- ============================================ -->
-  <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> IMG 7. Imagem com nome genérico/hash</h2>
-    <p class="description">Imagem com nome de arquivo gerado automaticamente.</p>
-    <p class="expected">✨ Esperado: alt="[Descrição da imagem]" (placeholder)</p>
-    <img src="img/1602180423fge0i9cidg.jpg" width="200">
-  </section>
-
-  <!-- ============================================ -->
-  <!-- CASO IMG 8: Ícone de carrinho sem alt -->
-  <!-- ============================================ -->
-  <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> IMG 8. Ícone de carrinho sem alt</h2>
-    <p class="description">Ícone funcional de e-commerce.</p>
+    <h2><span class="status warning">⚠️ DETECTA</span> IMG 7. Ícone de carrinho</h2>
+    <p class="description">Ícone funcional detectado pelo padrão "cart" no nome.</p>
     <p class="expected">✨ Esperado: alt="Carrinho de compras"</p>
     <img src="img/icon-cart-shopping.png" width="24" height="24">
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO IMG 8: Produto com padrão product- -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> IMG 8. Imagem de produto</h2>
+    <p class="description">Produto detectado pelo padrão "product-" no nome.</p>
+    <p class="expected">✨ Esperado: alt="Produto: celular samsung"</p>
+    <img src="img/product-celular-samsung.jpg" width="200">
   </section>
 
   <hr>
   <h2>✅ IMAGENS QUE NÃO DEVEM SER DETECTADAS (Já acessíveis)</h2>
 
   <!-- ============================================ -->
-  <!-- CASO IMG OK 1: Imagem com alt descritivo -->
+  <!-- CASO IMG OK 1: Imagem com alt descritivo (arquivo real) -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status ok">✅ OK</span> IMG A. Imagem com alt descritivo</h2>
+    <h2><span class="status ok">✅ OK</span> IMG A. Logo Toyota com alt (arquivo real)</h2>
     <p class="description">Imagem com texto alternativo apropriado.</p>
     <img src="img/toyota.png" alt="Logo da Toyota - marca japonesa de automóveis" width="120">
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO IMG OK 2: Imagem decorativa com alt vazio -->
+  <!-- CASO IMG OK 2: Imagem com alt descritivo (URL externa) -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status ok">✅ OK</span> IMG B. Imagem decorativa com alt=""</h2>
+    <h2><span class="status ok">✅ OK</span> IMG B. URL externa com alt descritivo</h2>
+    <p class="description">Imagem de URL externa com alt apropriado.</p>
+    <img src="https://frvr.com/wp-content/uploads/2026/01/arc-raiders-expedition-will-change.jpg" alt="Arte promocional do jogo Arc Raiders mostrando personagem em expedição" width="400">
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO IMG OK 3: Imagem decorativa com alt vazio -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status ok">✅ OK</span> IMG C. Imagem decorativa com alt=""</h2>
     <p class="description">Imagem decorativa corretamente marcada com alt vazio.</p>
     <img src="img/decorative-border.png" alt="" width="100%">
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO IMG OK 3: Imagem com aria-hidden -->
+  <!-- CASO IMG OK 4: Imagem com aria-hidden -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status ok">✅ OK</span> IMG C. Imagem com aria-hidden="true"</h2>
+    <h2><span class="status ok">✅ OK</span> IMG D. Imagem com aria-hidden="true"</h2>
     <p class="description">Imagem oculta de leitores de tela.</p>
     <img src="img/spacer.gif" aria-hidden="true" width="1" height="1">
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO IMG OK 4: Imagem com role="presentation" -->
+  <!-- CASO IMG OK 5: Imagem com role="presentation" -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status ok">✅ OK</span> IMG D. Imagem com role="presentation"</h2>
+    <h2><span class="status ok">✅ OK</span> IMG E. Imagem com role="presentation"</h2>
     <p class="description">Imagem marcada como apresentacional.</p>
     <img src="img/background-pattern.jpg" role="presentation" width="200">
   </section>
