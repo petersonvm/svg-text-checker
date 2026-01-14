@@ -388,550 +388,223 @@ export class IAClient {
 
 	/**
 	 * Identifica ícones específicos baseado em padrões visuais do SVG
+	 * PRIORIDADE: Análise do path primeiro, depois estrutura, depois keywords
 	 */
 	private identifySpecificIcon(svgCode: string, lower: string): { title: string; desc: string } | null {
-		// Padrões de ícones comuns - ordem importa (mais específico primeiro)
-		const iconPatterns: Array<{ pattern: RegExp; title: string; desc?: string }> = [
-			// ❤️ Coração / Favoritos (path com curvas características de coração)
-			{ 
-				pattern: /d\s*=\s*["'][^"']*[Cc]\s*[\d.]+\s+[\d.]+[^"']*[Cc]\s*[\d.]+\s+[\d.]+[^"']*[Zz]?\s*["']/i,
-				title: 'Adicionar aos favoritos',
-				desc: ''
-			},
-			// ❤️ Coração alternativo (bezier curves típicas)
-			{ 
-				pattern: /21\.35|8\.5\s*2\s*5\.42|bezier|heart/i,
-				title: 'Adicionar aos favoritos',
-				desc: ''
-			},
-			// 🔔 Sino / Notificação
-			{ 
-				pattern: /<path[^>]*d\s*=\s*["']M\s*18\s+8[^"']*9[^"']*["']/i,
-				title: 'Notificações',
-				desc: ''
-			},
-			// 🔔 Sino alternativo
-			{ 
-				pattern: /bell|notif|alert.*circle/i,
-				title: 'Ver notificações',
-				desc: ''
-			},
-			// 🔍 Lupa / Busca (círculo + linha diagonal)
-			{ 
-				pattern: /<circle[^>]+cx\s*=\s*["']?1[01]["']?[^>]*>[\s\S]*<line[^>]+x1\s*=\s*["']?2[01]/i,
-				title: 'Pesquisar',
-				desc: ''
-			},
-			// 🔍 Busca alternativo
-			{ 
-				pattern: /search|magnif|lupa/i,
-				title: 'Pesquisar',
-				desc: ''
-			},
-			// ☰ Menu hamburger (3 linhas horizontais paralelas)
-			{ 
-				pattern: /<line[^>]+y1\s*=\s*["']?6["']?[^>]*>[\s\S]*<line[^>]+y1\s*=\s*["']?12["']?[\s\S]*<line[^>]+y1\s*=\s*["']?18["']?/i,
-				title: 'Abrir menu de navegação',
-				desc: ''
-			},
-			// ☰ Menu alternativo (3 rects horizontais)
-			{ 
-				pattern: /<line[^>]+x1\s*=\s*["']?3["']?[^>]+x2\s*=\s*["']?21["']?/i,
-				title: 'Abrir menu de navegação',
-				desc: ''
-			},
-			// ✕ Fechar (duas linhas cruzando em X)
-			{ 
-				pattern: /<line[^>]+x1\s*=\s*["']?18["']?[^>]+y1\s*=\s*["']?6["']?[^>]+x2\s*=\s*["']?6["']?[^>]+y2\s*=\s*["']?18["']?/i,
-				title: 'Fechar',
-				desc: ''
-			},
-			// ✕ Fechar alternativo
-			{ 
-				pattern: /close|dismiss|×|x.*x/i,
-				title: 'Fechar',
-				desc: ''
-			},
-			// ⬇️ Download / Seta para baixo
-			{ 
-				pattern: /download|arrow.*down|seta.*baixo/i,
-				title: 'Baixar arquivo',
-				desc: ''
-			},
-			// ⬆️ Upload / Seta para cima
-			{ 
-				pattern: /upload|arrow.*up|seta.*cima/i,
-				title: 'Enviar arquivo',
-				desc: ''
-			},
-			// ✏️ Editar / Lápis
-			{ 
-				pattern: /edit|pencil|lápis|caneta/i,
-				title: 'Editar',
-				desc: ''
-			},
-			// 🗑️ Lixeira / Excluir
-			{ 
-				pattern: /trash|delete|lixo|excluir|remove/i,
-				title: 'Excluir',
-				desc: ''
-			},
-			// ⚙️ Configurações / Engrenagem
-			{ 
-				pattern: /settings|config|gear|engrenagem|cog/i,
-				title: 'Abrir configurações',
-				desc: ''
-			},
-			// 👤 Usuário / Perfil
-			{ 
-				pattern: /user|profile|person|avatar|usuário/i,
-				title: 'Perfil do usuário',
-				desc: ''
-			},
-			// 🏠 Casa / Home
-			{ 
-				pattern: /home|house|casa|início/i,
-				title: 'Ir para página inicial',
-				desc: ''
-			},
-			// ➕ Adicionar / Plus
-			{ 
-				pattern: /\+|plus|add|adicionar/i,
-				title: 'Adicionar novo item',
-				desc: ''
-			},
-			// ✓ Check / Confirmar
-			{ 
-				pattern: /check|confirm|tick|verificar|confirmar/i,
-				title: 'Confirmar',
-				desc: ''
-			},
-			// 📧 Email / Envelope
-			{ 
-				pattern: /mail|email|envelope|carta/i,
-				title: 'Enviar email',
-				desc: ''
-			},
-			// 📞 Telefone
-			{ 
-				pattern: /phone|telefone|call|ligar/i,
-				title: 'Ligar',
-				desc: ''
-			},
-			// 📍 Localização / Pin
-			{ 
-				pattern: /location|pin|map|local|mapa/i,
-				title: 'Ver localização',
-				desc: ''
-			},
-			// 🔗 Link / Corrente
-			{ 
-				pattern: /link|chain|corrente/i,
-				title: 'Copiar link',
-				desc: ''
-			},
-			// 📤 Compartilhar
-			{ 
-				pattern: /share|compartilhar/i,
-				title: 'Compartilhar',
-				desc: ''
-			},
-			// ▶️ Play / Reproduzir
-			{ 
-				pattern: /play|reproduzir|iniciar/i,
-				title: 'Reproduzir',
-				desc: ''
-			},
-			// ⏸️ Pause / Pausar
-			{ 
-				pattern: /pause|pausar/i,
-				title: 'Pausar',
-				desc: ''
-			},
-			// 🔊 Volume / Som
-			{ 
-				pattern: /volume|sound|som|audio/i,
-				title: 'Ajustar volume',
-				desc: ''
-			},
-			// 📊 Gráfico de barras
-			{ 
-				pattern: /chart|graph|gráfico|estatística/i,
-				title: 'Ver estatísticas',
-				desc: ''
-			},
-			// 📁 Pasta / Folder
-			{ 
-				pattern: /folder|pasta|diretório/i,
-				title: 'Abrir pasta',
-				desc: ''
-			},
-			// 📄 Documento / Arquivo
-			{ 
-				pattern: /file|document|arquivo|documento/i,
-				title: 'Ver documento',
-				desc: ''
-			},
-			// 🖼️ Imagem
-			{ 
-				pattern: /image|picture|imagem|foto/i,
-				title: 'Ver imagem',
-				desc: ''
-			},
-			// 🎬 Vídeo
-			{ 
-				pattern: /video|vídeo|filme/i,
-				title: 'Ver vídeo',
-				desc: ''
-			},
-			// 🔒 Cadeado / Segurança
-			{ 
-				pattern: /lock|secure|cadeado|seguro/i,
-				title: 'Segurança',
-				desc: ''
-			},
-			// 👁️ Olho / Visualizar
-			{ 
-				pattern: /eye|view|olho|visualizar/i,
-				title: 'Visualizar',
-				desc: ''
-			},
-			// ↩️ Desfazer / Voltar
-			{ 
-				pattern: /undo|back|voltar|desfazer/i,
-				title: 'Voltar',
-				desc: ''
-			},
-			// ↪️ Refazer / Avançar
-			{ 
-				pattern: /redo|forward|avançar|refazer/i,
-				title: 'Avançar',
-				desc: ''
-			},
-			// 💾 Salvar
-			{ 
-				pattern: /save|salvar|disk|disco/i,
-				title: 'Salvar',
-				desc: ''
-			},
-			// 📋 Copiar
-			{ 
-				pattern: /copy|copiar|clipboard/i,
-				title: 'Copiar',
-				desc: ''
-			},
-			// 📥 Colar
-			{ 
-				pattern: /paste|colar/i,
-				title: 'Colar',
-				desc: ''
-			},
-			// ⭐ Estrela / Destaque
-			{ 
-				pattern: /star|estrela|destaque|favorito/i,
-				title: 'Marcar como favorito',
-				desc: ''
-			},
-			// 🔄 Atualizar / Refresh
-			{ 
-				pattern: /refresh|reload|atualizar|sync/i,
-				title: 'Atualizar',
-				desc: ''
-			},
-			// ℹ️ Informação
-			{ 
-				pattern: /info|information|informação/i,
-				title: 'Ver informações',
-				desc: ''
-			},
-			// ❓ Ajuda
-			{ 
-				pattern: /help|ajuda|\?/i,
-				title: 'Obter ajuda',
-				desc: ''
-			},
-			// ⚠️ Aviso / Alerta
-			{ 
-				pattern: /warning|alert|aviso|atenção/i,
-				title: 'Aviso importante',
-				desc: ''
-			},
-			// ❌ Erro
-			{ 
-				pattern: /error|erro|danger/i,
-				title: 'Erro',
-				desc: ''
-			},
-			// ✅ Sucesso
-			{ 
-				pattern: /success|sucesso|done|concluído/i,
-				title: 'Sucesso',
-				desc: ''
-			},
-			// 📅 Calendário
-			{ 
-				pattern: /calendar|calendário|data|date/i,
-				title: 'Abrir calendário',
-				desc: ''
-			},
-			// ⏰ Relógio / Tempo
-			{ 
-				pattern: /clock|time|relógio|hora/i,
-				title: 'Ver horário',
-				desc: ''
-			},
-			// 🏷️ Tag / Etiqueta
-			{ 
-				pattern: /tag|label|etiqueta/i,
-				title: 'Adicionar etiqueta',
-				desc: ''
-			},
-			// 💬 Chat / Mensagem
-			{ 
-				pattern: /chat|message|mensagem|comment|comentário/i,
-				title: 'Abrir conversa',
-				desc: ''
-			},
-			// 🛒 Carrinho de compras
-			{ 
-				pattern: /cart|carrinho|shop|compras/i,
-				title: 'Ver carrinho de compras',
-				desc: ''
-			},
-			// 💳 Pagamento / Cartão
-			{ 
-				pattern: /payment|credit|card|cartão|pagamento/i,
-				title: 'Fazer pagamento',
-				desc: ''
-			},
-			// 🔑 Chave / Login
-			{ 
-				pattern: /key|chave|login|senha/i,
-				title: 'Fazer login',
-				desc: ''
-			},
-			// 🚪 Sair / Logout
-			{ 
-				pattern: /logout|exit|sair/i,
-				title: 'Sair da conta',
-				desc: ''
-			},
-			// ⬅️ Seta esquerda
-			{ 
-				pattern: /arrow.*left|seta.*esquerda|chevron.*left|previous|anterior/i,
-				title: 'Anterior',
-				desc: ''
-			},
-			// ➡️ Seta direita
-			{ 
-				pattern: /arrow.*right|seta.*direita|chevron.*right|next|próximo/i,
-				title: 'Próximo',
-				desc: ''
-			},
-			// 📱 Mobile / Celular
-			{ 
-				pattern: /mobile|celular|smartphone/i,
-				title: 'Ver versão mobile',
-				desc: ''
-			},
-			// 💻 Desktop / Computador
-			{ 
-				pattern: /desktop|computer|computador/i,
-				title: 'Ver versão desktop',
-				desc: ''
-			},
-			// 🖨️ Imprimir
-			{ 
-				pattern: /print|imprimir/i,
-				title: 'Imprimir',
-				desc: ''
-			},
-			// 📎 Anexo / Clip
-			{ 
-				pattern: /attach|anexo|clip/i,
-				title: 'Anexar arquivo',
-				desc: ''
-			},
-			// 🎨 Cor / Paleta
-			{ 
-				pattern: /color|palette|cor|paleta/i,
-				title: 'Escolher cor',
-				desc: ''
-			},
-			// 📝 Nota / Anotação
-			{ 
-				pattern: /note|nota|anotação/i,
-				title: 'Adicionar nota',
-				desc: ''
-			},
-			// 🔧 Ferramentas
-			{ 
-				pattern: /tool|ferramenta|wrench/i,
-				title: 'Ferramentas',
-				desc: ''
-			},
-			// 📦 Pacote / Box
-			{ 
-				pattern: /package|box|pacote|caixa/i,
-				title: 'Ver pacote',
-				desc: ''
-			},
-			// 🌐 Mundo / Global
-			{ 
-				pattern: /globe|world|mundo|global|idioma|language/i,
-				title: 'Alterar idioma',
-				desc: ''
-			},
-			// 🌙 Modo escuro / Lua
-			{ 
-				pattern: /moon|dark.*mode|modo.*escuro|lua/i,
-				title: 'Ativar modo escuro',
-				desc: ''
-			},
-			// ☀️ Modo claro / Sol
-			{ 
-				pattern: /sun|light.*mode|modo.*claro|sol/i,
-				title: 'Ativar modo claro',
-				desc: ''
-			},
-			// 🎵 Música
-			{ 
-				pattern: /music|música|song/i,
-				title: 'Reproduzir música',
-				desc: ''
-			},
-			// 🎤 Microfone
-			{ 
-				pattern: /mic|microphone|microfone/i,
-				title: 'Ativar microfone',
-				desc: ''
-			},
-			// 📹 Câmera
-			{ 
-				pattern: /camera|câmera|webcam/i,
-				title: 'Ativar câmera',
-				desc: ''
-			},
-			// 📡 Wi-Fi / Conexão
-			{ 
-				pattern: /wifi|connection|conexão|network|rede/i,
-				title: 'Ver conexão',
-				desc: ''
-			},
-			// 🔋 Bateria
-			{ 
-				pattern: /battery|bateria/i,
-				title: 'Ver bateria',
-				desc: ''
-			},
-			// 🎁 Presente / Gift
-			{ 
-				pattern: /gift|presente/i,
-				title: 'Ver presentes',
-				desc: ''
-			},
-			// 🏆 Troféu / Conquista
-			{ 
-				pattern: /trophy|conquista|achievement/i,
-				title: 'Ver conquistas',
-				desc: ''
-			},
-			// 👍 Like / Curtir
-			{ 
-				pattern: /like|curtir|thumb.*up/i,
-				title: 'Curtir',
-				desc: ''
-			},
-			// 👎 Dislike / Não curtir
-			{ 
-				pattern: /dislike|thumb.*down/i,
-				title: 'Não curtir',
-				desc: ''
-			},
-			// 🔀 Embaralhar / Shuffle
-			{ 
-				pattern: /shuffle|embaralhar|random/i,
-				title: 'Embaralhar',
-				desc: ''
-			},
-			// 🔁 Repetir / Loop
-			{ 
-				pattern: /repeat|loop|repetir/i,
-				title: 'Repetir',
-				desc: ''
-			},
-			// ⏭️ Próxima faixa
-			{ 
-				pattern: /skip.*next|próxima.*faixa/i,
-				title: 'Próxima faixa',
-				desc: ''
-			},
-			// ⏮️ Faixa anterior
-			{ 
-				pattern: /skip.*prev|faixa.*anterior/i,
-				title: 'Faixa anterior',
-				desc: ''
-			},
-			// 📌 Fixar / Pin
-			{ 
-				pattern: /pin|fixar|thumbtack/i,
-				title: 'Fixar item',
-				desc: ''
-			},
-			// 🔖 Bookmark / Marcador
-			{ 
-				pattern: /bookmark|marcador/i,
-				title: 'Adicionar marcador',
-				desc: ''
-			},
-			// 📊 Pizza chart - detectar pelo padrão de arcos
-			{
-				pattern: /<path[^>]+d\s*=\s*["']M\s*\d+\s+\d+\s*L[^"']*A\s*\d+/i,
-				title: 'Gráfico de distribuição',
-				desc: 'Gráfico circular mostrando proporções de diferentes categorias.'
-			},
-			// 📈 Gráfico de barras - múltiplos rects verticais
-			{
-				pattern: /<rect[^>]+height\s*=\s*["']?\d{2,}["']?[^>]*>[\s\S]*<rect[^>]+height\s*=\s*["']?\d{2,}["']?/i,
-				title: 'Gráfico de barras',
-				desc: 'Gráfico de barras comparando valores de diferentes categorias.'
-			},
-			// Fluxograma - múltiplos rects com linhas conectando
-			{
-				pattern: /<rect[^>]+rx\s*=\s*["']?\d["']?[^>]*>[\s\S]*<line[^>]+>[\s\S]*<rect/i,
-				title: 'Diagrama de fluxo',
-				desc: 'Diagrama mostrando etapas de um processo.'
-			},
+		// =====================================================
+		// FASE 1: Análise do path d="" para formas específicas
+		// =====================================================
+		const pathMatch = svgCode.match(/d\s*=\s*["']([^"']+)["']/i);
+		if (pathMatch) {
+			const pathData = pathMatch[1];
+			
+			// ❤️ Coração - path que contém "21.35" ou coordenadas típicas de coração
+			if (/21\.35/.test(pathData) || /8\.5.*5\.42/.test(pathData)) {
+				return { title: 'Adicionar aos favoritos', desc: '' };
+			}
+			
+			// ❤️ Coração alternativo - curvas bezier simétricas típicas de coração
+			// Path começa em M12 (centro) e tem múltiplas curvas C
+			if (/^M\s*12\s/.test(pathData) && /[Cc]/.test(pathData) && pathData.length > 100) {
+				// Verificar se tem padrão de coração (ponto final em 21.35 ou similar)
+				if (/21\.\d|l\s*-?\d+\.?\d*\s+-?\d+\.?\d*\s*[Cc]/i.test(pathData)) {
+					return { title: 'Adicionar aos favoritos', desc: '' };
+				}
+			}
+		}
+
+		// =====================================================
+		// FASE 2: Análise de cor fill para identificar tipo
+		// =====================================================
+		const fillMatch = svgCode.match(/fill\s*=\s*["']([^"']+)["']/i);
+		if (fillMatch) {
+			const fillColor = fillMatch[1].toLowerCase();
+			// Rosa/vermelho (#e91e63, #f44336, #e53935, etc.) = coração/favorito
+			if (/^#[ef][0-9][0-5a-f][0-9a-f]{3}$/i.test(fillColor) || 
+			    /^#[ef][0-9a-f]{5}$/i.test(fillColor) && /e9|e5|f4|ff|d3|c6/.test(fillColor)) {
+				// Verificar se é ícone pequeno (24x24 tipicamente)
+				if (/viewBox\s*=\s*["']0\s+0\s+24\s+24["']/i.test(svgCode)) {
+					// Verificar se tem path complexo (coração)
+					if (pathMatch && pathMatch[1].length > 50) {
+						return { title: 'Adicionar aos favoritos', desc: '' };
+					}
+				}
+			}
+		}
+
+		// =====================================================
+		// FASE 3: Análise estrutural de elementos
+		// =====================================================
+		
+		// Contar elementos para determinar estrutura
+		const lineCount = (svgCode.match(/<line\b/gi) || []).length;
+		const circleCount = (svgCode.match(/<circle\b/gi) || []).length;
+		const pathCount = (svgCode.match(/<path\b/gi) || []).length;
+		const rectCount = (svgCode.match(/<rect\b/gi) || []).length;
+		
+		// 🔍 Lupa/Busca: 1 círculo + 1 linha (cabo)
+		if (circleCount === 1 && lineCount === 1 && pathCount === 0) {
+			// Verificar se a linha é diagonal (cabo da lupa)
+			if (/<line[^>]+x1\s*=\s*["']?\d+["']?[^>]+x2\s*=\s*["']?\d+["']?/i.test(svgCode)) {
+				return { title: 'Pesquisar', desc: '' };
+			}
+		}
+
+		// ☰ Menu hamburger: exatamente 3 linhas horizontais
+		if (lineCount === 3 && pathCount === 0 && circleCount === 0) {
+			// Verificar se as linhas são horizontais (y1 == y2 para cada uma)
+			const lines = svgCode.match(/<line[^>]+>/gi) || [];
+			let horizontalLines = 0;
+			for (const line of lines) {
+				const y1Match = line.match(/y1\s*=\s*["']?(\d+)/);
+				const y2Match = line.match(/y2\s*=\s*["']?(\d+)/);
+				if (y1Match && y2Match && y1Match[1] === y2Match[1]) {
+					horizontalLines++;
+				}
+			}
+			if (horizontalLines === 3) {
+				return { title: 'Abrir menu de navegação', desc: '' };
+			}
+		}
+
+		// ✕ Fechar: exatamente 2 linhas cruzando em X
+		if (lineCount === 2 && pathCount === 0 && circleCount === 0) {
+			return { title: 'Fechar', desc: '' };
+		}
+
+		// 🔔 Sino/Notificação: path + círculo pequeno (badge)
+		if (pathCount >= 1 && circleCount >= 1) {
+			// Verificar se círculo é pequeno (badge de notificação)
+			const smallCircle = /<circle[^>]+r\s*=\s*["']?[1-5]["']?/i.test(svgCode);
+			if (smallCircle) {
+				return { title: 'Ver notificações', desc: '' };
+			}
+		}
+
+		// =====================================================
+		// FASE 4: Keywords no SVG (classes, IDs, comentários)
+		// =====================================================
+		const keywordPatterns: Array<{ pattern: RegExp; title: string; desc?: string }> = [
+			// Favoritos/Coração
+			{ pattern: /heart|coração|favorit|❤|love/i, title: 'Adicionar aos favoritos' },
+			// Busca
+			{ pattern: /search|magnif|lupa|busca|pesquis/i, title: 'Pesquisar' },
+			// Menu
+			{ pattern: /menu|hamburger|nav/i, title: 'Abrir menu de navegação' },
+			// Fechar
+			{ pattern: /close|fechar|dismiss|×/i, title: 'Fechar' },
+			// Notificações
+			{ pattern: /bell|sino|notif|alert/i, title: 'Ver notificações' },
+			// Download
+			{ pattern: /download|baixar/i, title: 'Baixar arquivo' },
+			// Upload
+			{ pattern: /upload|enviar.*arquivo/i, title: 'Enviar arquivo' },
+			// Editar
+			{ pattern: /edit|pencil|lápis|caneta|editar/i, title: 'Editar' },
+			// Excluir
+			{ pattern: /trash|delete|lixo|excluir|remover/i, title: 'Excluir' },
+			// Configurações
+			{ pattern: /settings|config|gear|engrenagem|cog/i, title: 'Abrir configurações' },
+			// Usuário
+			{ pattern: /user|profile|person|avatar|usuário|perfil/i, title: 'Perfil do usuário' },
+			// Home
+			{ pattern: /home|house|casa|início/i, title: 'Ir para página inicial' },
+			// Adicionar
+			{ pattern: /plus|add(?!ress)|adicionar/i, title: 'Adicionar novo item' },
+			// Check
+			{ pattern: /check|confirm|tick|verificar|confirmar/i, title: 'Confirmar' },
+			// Email
+			{ pattern: /mail|email|envelope|carta/i, title: 'Enviar email' },
+			// Telefone
+			{ pattern: /phone|telefone|call|ligar/i, title: 'Ligar' },
+			// Localização
+			{ pattern: /location|pin|map(?!le)|local(?!host)|mapa/i, title: 'Ver localização' },
+			// Link
+			{ pattern: /(?<!un)link|chain|corrente/i, title: 'Copiar link' },
+			// Compartilhar
+			{ pattern: /share|compartilhar/i, title: 'Compartilhar' },
+			// Play
+			{ pattern: /\bplay\b|reproduzir|iniciar/i, title: 'Reproduzir' },
+			// Pause
+			{ pattern: /pause|pausar/i, title: 'Pausar' },
+			// Volume
+			{ pattern: /volume|sound|som(?!e)|audio/i, title: 'Ajustar volume' },
+			// Pasta
+			{ pattern: /folder|pasta|diretório/i, title: 'Abrir pasta' },
+			// Documento
+			{ pattern: /\bfile\b|document|arquivo|documento/i, title: 'Ver documento' },
+			// Segurança
+			{ pattern: /lock|secure|cadeado|seguro/i, title: 'Segurança' },
+			// Visualizar
+			{ pattern: /\beye\b|view(?!box)|olho|visualizar/i, title: 'Visualizar' },
+			// Salvar
+			{ pattern: /save|salvar|disk|disco/i, title: 'Salvar' },
+			// Copiar
+			{ pattern: /\bcopy\b|copiar|clipboard/i, title: 'Copiar' },
+			// Estrela
+			{ pattern: /\bstar\b|estrela|destaque/i, title: 'Marcar como favorito' },
+			// Atualizar
+			{ pattern: /refresh|reload|atualizar|sync/i, title: 'Atualizar' },
+			// Informação
+			{ pattern: /\binfo\b|informação/i, title: 'Ver informações' },
+			// Ajuda
+			{ pattern: /\bhelp\b|ajuda/i, title: 'Obter ajuda' },
+			// Calendário
+			{ pattern: /calendar|calendário/i, title: 'Abrir calendário' },
+			// Relógio
+			{ pattern: /clock|relógio|hora/i, title: 'Ver horário' },
+			// Chat
+			{ pattern: /chat|message|mensagem|comment|comentário/i, title: 'Abrir conversa' },
+			// Carrinho
+			{ pattern: /cart|carrinho|shop|compras/i, title: 'Ver carrinho de compras' },
+			// Logout
+			{ pattern: /logout|signout|sair/i, title: 'Sair da conta' },
+			// Login
+			{ pattern: /login|signin|entrar/i, title: 'Fazer login' },
+			// Setas
+			{ pattern: /arrow.*left|chevron.*left|previous|anterior/i, title: 'Anterior' },
+			{ pattern: /arrow.*right|chevron.*right|next|próximo/i, title: 'Próximo' },
+			// Imprimir
+			{ pattern: /print|imprimir/i, title: 'Imprimir' },
+			// Anexar
+			{ pattern: /attach|anexo/i, title: 'Anexar arquivo' },
+			// Like
+			{ pattern: /\blike\b|curtir|thumb.*up/i, title: 'Curtir' },
 		];
 
-		// Verificar cada padrão
-		for (const { pattern, title, desc } of iconPatterns) {
-			if (pattern.test(svgCode) || pattern.test(lower)) {
+		for (const { pattern, title, desc } of keywordPatterns) {
+			if (pattern.test(svgCode)) {
 				return { title, desc: desc || '' };
 			}
 		}
 
-		// Se não encontrou padrão específico mas parece ser um ícone de ação
-		// Tentar detectar pela estrutura do SVG
+		// =====================================================
+		// FASE 5: Gráficos e diagramas
+		// =====================================================
 		
-		// Ícone com fill de cor sólida específica (provavelmente um ícone colorido como coração)
-		if (/<(path|circle|rect)[^>]+fill\s*=\s*["']#[ef][0-9a-f]{4,5}["']/i.test(svgCode)) {
-			// Cores avermelhadas/rosadas geralmente indicam coração/favorito
-			if (/fill\s*=\s*["']#[ef][0-9][0-5]/i.test(svgCode)) {
-				return { title: 'Adicionar aos favoritos', desc: '' };
+		// Gráfico de pizza - múltiplos paths com arcos (A comando em SVG)
+		if (pathCount >= 3) {
+			const paths = svgCode.match(/d\s*=\s*["'][^"']+["']/gi) || [];
+			let arcPaths = 0;
+			for (const p of paths) {
+				if (/\sA\s*\d/i.test(p)) arcPaths++;
+			}
+			if (arcPaths >= 2) {
+				return { title: 'Gráfico de distribuição', desc: 'Gráfico circular mostrando proporções de diferentes categorias.' };
 			}
 		}
 
-		// Ícone com path que tem curvas bezier complexas (típico de ícones de coração)
-		if (/<path[^>]+d\s*=\s*["'][^"']*c\s*[\d.-]+\s*[\d.-]+[^"']*c\s*[\d.-]+\s*[\d.-]+[^"']*["']/i.test(svgCode)) {
-			// Verificar se tem formato de coração (curvas simétricas)
-			const pathMatch = svgCode.match(/d\s*=\s*["']([^"']+)["']/i);
-			if (pathMatch && pathMatch[1].toLowerCase().includes('c') && /21\.35|8\.5/.test(pathMatch[1])) {
-				return { title: 'Adicionar aos favoritos', desc: '' };
-			}
+		// Gráfico de barras - múltiplos rects verticais
+		if (rectCount >= 3 && lineCount <= 2) {
+			return { title: 'Gráfico de barras', desc: 'Gráfico de barras comparando valores.' };
 		}
 
-		return null; // Não identificou um ícone específico
+		// Diagrama de fluxo - rects + linhas conectando
+		if (rectCount >= 2 && lineCount >= 1 && /<text/i.test(svgCode)) {
+			return { title: 'Diagrama de fluxo', desc: 'Diagrama mostrando etapas de um processo.' };
+		}
+
+		return null;
 	}
 }
 

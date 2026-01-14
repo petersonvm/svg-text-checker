@@ -29,7 +29,7 @@
   <section>
     <h2><span class="status warning">⚠️ DETECTA</span> 1. SVG básico sem acessibilidade</h2>
     <p class="description">SVG simples sem title, desc ou aria-hidden. O plugin deve detectar e sugerir correção.</p>
-    <svg width="80" height="80" viewBox="0 0 80 80" >
+    <svg width="80" height="80" viewBox="0 0 80 80"  aria-hidden="true">
       <circle cx="40" cy="40" r="30" fill="#0099ff" />
     </svg>
   </section>
@@ -40,7 +40,9 @@
   <section>
     <h2><span class="status warning">⚠️ DETECTA</span> 2. Ícone de menu (hamburger) sem acessibilidade</h2>
     <p class="description">Ícone que representa uma ação - deve ter texto alternativo.</p>
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"  role="img" aria-labelledby="svg-title-ahcjl3">
+  <title id="svg-title-ahcjl3">Abrir menu de navegação</title>
+
       <line x1="3" y1="6" x2="21" y2="6"/>
       <line x1="3" y1="12" x2="21" y2="12"/>
       <line x1="3" y1="18" x2="21" y2="18"/>
@@ -53,7 +55,9 @@
   <section>
     <h2><span class="status warning">⚠️ DETECTA</span> 3. Ícone de fechar (X) sem acessibilidade</h2>
     <p class="description">Ícone de ação comum que precisa de descrição.</p>
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" >
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"  role="img" aria-labelledby="svg-title-9cqkx3">
+  <title id="svg-title-9cqkx3">Fechar</title>
+
       <line x1="18" y1="6" x2="6" y2="18"/>
       <line x1="6" y1="6" x2="18" y2="18"/>
     </svg>
@@ -65,7 +69,9 @@
   <section>
     <h2><span class="status warning">⚠️ DETECTA</span> 4. Gráfico de barras sem acessibilidade</h2>
     <p class="description">Gráfico complexo que precisa de title E desc para ser acessível.</p>
-    <svg width="200" height="120" viewBox="0 0 200 120" >
+    <svg width="200" height="120" viewBox="0 0 200 120"  role="img" aria-labelledby="svg-title-gjwy5x">
+  <title id="svg-title-gjwy5x">Fechar</title>
+
       <rect x="10" y="60" width="30" height="50" fill="#4caf50" />
       <rect x="50" y="30" width="30" height="80" fill="#2196f3" />
       <rect x="90" y="45" width="30" height="65" fill="#ff9800" />
@@ -81,7 +87,9 @@
   <section>
     <h2><span class="status warning">⚠️ DETECTA</span> 5. Logo da empresa sem acessibilidade</h2>
     <p class="description">Logos são informativos e precisam de texto alternativo.</p>
-    <svg width="120" height="40" viewBox="0 0 120 40">
+    <svg width="120" height="40" viewBox="0 0 120 40" role="img" aria-labelledby="svg-title-0tt80l">
+  <title id="svg-title-0tt80l">Fechar</title>
+
       <rect x="0" y="0" width="120" height="40" fill="#1a1a2e" rx="5"/>
       <text x="10" y="28" font-family="Arial" font-size="20" fill="white" font-weight="bold">ACME</text>
       <circle cx="100" cy="20" r="12" fill="#e94560"/>
