@@ -55,10 +55,10 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand('svgA11yAssist.generateAccessibility', async () => {
+		vscode.commands.registerCommand('svgA11yAssist.generateAccessibility', async (diagnosticRange?: vscode.Range) => {
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) return;
-			await applyFixForEditor(editor, iaClient);
+			await applyFixForEditor(editor, iaClient, diagnosticRange);
 		})
 	);
 }
@@ -77,23 +77,29 @@ class SvgA11yCodeActionProvider implements vscode.CodeActionProvider {
 	): vscode.ProviderResult<vscode.CodeAction[]> {
 		const diagnostics = context.diagnostics.filter((d: vscode.Diagnostic) => d.code === DIAGNOSTIC_CODE);
 		if (!diagnostics.length) return;
-		const action = new vscode.CodeAction(
-			'Gerar Acessibilidade para SVG com IA',
-			vscode.CodeActionKind.QuickFix
-		);
-		action.command = {
-			command: 'svgA11yAssist.generateAccessibility',
-			title: 'Gerar Acessibilidade para SVG com IA'
-		};
-		action.diagnostics = diagnostics;
-		action.isPreferred = true;
-		return [action];
+		
+		// Criar uma ação para cada diagnóstico
+		return diagnostics.map(diagnostic => {
+			const action = new vscode.CodeAction(
+				'Gerar Acessibilidade para SVG com IA',
+				vscode.CodeActionKind.QuickFix
+			);
+			action.command = {
+				command: 'svgA11yAssist.generateAccessibility',
+				title: 'Gerar Acessibilidade para SVG com IA',
+				arguments: [diagnostic.range]
+			};
+			action.diagnostics = [diagnostic];
+			action.isPreferred = true;
+			return action;
+		});
 	}
 }
 
 async function applyFixForEditor(
 	editor: vscode.TextEditor,
-	iaClient: ReturnType<typeof createIAClient>
+	iaClient: ReturnType<typeof createIAClient>,
+	diagnosticRange?: vscode.Range
 ) {
 	const doc = editor.document;
 	const text = doc.getText();
@@ -102,12 +108,28 @@ async function applyFixForEditor(
 		vscode.window.showInformationMessage('Nenhum SVG elegível encontrado.');
 		return;
 	}
-	// For simplicity process the first one under cursor or first one.
-	const cursor = editor.selection.active;
+	
+	// Se temos o range do diagnóstico, encontrar o SVG correspondente
+	// Caso contrário, usar a posição do cursor
 	let target = nodes[0];
-	for (const n of nodes) {
-		if (cursor.isAfterOrEqual(doc.positionAt(n.start)) && cursor.isBeforeOrEqual(doc.positionAt(n.end))) {
-			target = n; break;
+	
+	if (diagnosticRange) {
+		// Encontrar o SVG que corresponde ao range do diagnóstico
+		const diagnosticStart = doc.offsetAt(diagnosticRange.start);
+		for (const n of nodes) {
+			if (n.start === diagnosticStart) {
+				target = n;
+				break;
+			}
+		}
+	} else {
+		// Fallback: usar posição do cursor
+		const cursor = editor.selection.active;
+		for (const n of nodes) {
+			if (cursor.isAfterOrEqual(doc.positionAt(n.start)) && cursor.isBeforeOrEqual(doc.positionAt(n.end))) {
+				target = n;
+				break;
+			}
 		}
 	}
 
