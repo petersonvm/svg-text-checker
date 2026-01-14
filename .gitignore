@@ -6,3 +6,4 @@ out/
 
 # Configurações locais com API keys sensíveis
 .vscode/settings.json
+.env

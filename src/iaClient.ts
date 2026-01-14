@@ -62,12 +62,15 @@ export class IAClient {
 	async suggestForImg(imgSrc: string, imgTag: string, documentUri?: vscode.Uri): Promise<IAResponseSuggestion> {
 		// Se não tem endpoint/key, usar heurística baseada no nome do arquivo
 		if (!this.opts.endpoint || !this.opts.apiKey) {
+			console.log('[A11Y] Sem endpoint/apiKey, usando heurística');
 			return this.mockImgHeuristic(imgSrc, imgTag);
 		}
 
 		// Ler configuração de visão dinamicamente (pode ter mudado desde a criação do cliente)
 		const config = vscode.workspace.getConfiguration('svgA11yAssist');
 		const useVision = config.get<boolean>('useVision') ?? this.opts.useVision;
+		
+		console.log(`[A11Y] suggestForImg - useVision: ${useVision}, imgSrc: ${imgSrc}, hasDocUri: ${!!documentUri}`);
 
 		// Verificar se é URL externa (http/https) ou caminho local
 		const isExternalUrl = imgSrc.startsWith('http://') || imgSrc.startsWith('https://') || imgSrc.startsWith('data:');
@@ -75,14 +78,19 @@ export class IAClient {
 		// Se modo visão está habilitado
 		if (useVision) {
 			if (isExternalUrl) {
+				console.log('[A11Y] Usando visão para URL externa');
 				// URL externa: enviar diretamente para IA
 				return this.suggestImgWithVision(imgSrc, imgTag);
 			} else if (documentUri) {
+				console.log('[A11Y] Usando visão para arquivo local');
 				// Arquivo local: ler e enviar como base64
 				return this.suggestLocalImgWithVision(imgSrc, imgTag, documentUri);
+			} else {
+				console.log('[A11Y] useVision ativo mas sem documentUri, caindo para texto');
 			}
 		}
 
+		console.log('[A11Y] Usando análise de texto');
 		// Fallback: análise via texto com LLM
 		return this.suggestImgWithText(imgSrc, imgTag);
 	}
@@ -172,16 +180,24 @@ export class IAClient {
 			// Resolver o caminho da imagem relativo ao documento
 			const documentDir = path.dirname(documentUri.fsPath);
 			const imagePath = path.resolve(documentDir, imgSrc);
+			
+			console.log(`[A11Y] suggestLocalImgWithVision - documentDir: ${documentDir}`);
+			console.log(`[A11Y] suggestLocalImgWithVision - imagePath: ${imagePath}`);
 
 			// Verificar se o arquivo existe
 			if (!fs.existsSync(imagePath)) {
+				console.log(`[A11Y] Arquivo não encontrado: ${imagePath}`);
 				vscode.window.showWarningMessage(`Arquivo de imagem não encontrado: ${imagePath}`);
 				return this.mockImgHeuristic(imgSrc, imgTag);
 			}
 
+			console.log(`[A11Y] Arquivo encontrado, lendo...`);
+			
 			// Ler o arquivo e converter para base64
 			const imageBuffer = fs.readFileSync(imagePath);
 			const base64Image = imageBuffer.toString('base64');
+			
+			console.log(`[A11Y] Imagem lida, tamanho base64: ${base64Image.length} caracteres`);
 
 			// Detectar o tipo MIME baseado na extensão
 			const ext = path.extname(imagePath).toLowerCase();
@@ -189,6 +205,8 @@ export class IAClient {
 
 			// Detectar provedor de IA
 			const provider = detectAIProvider(this.opts.endpoint!);
+			
+			console.log(`[A11Y] Provider: ${provider}, MimeType: ${mimeType}`);
 
 			// Criar payload de imagem com base64
 			const imagePayload = this.buildImgBase64Payload(base64Image, mimeType, provider);
@@ -198,6 +216,8 @@ export class IAClient {
 
 			// Montar body da requisição
 			const body = this.buildImgVisionRequestBody(imagePayload, prompt, provider);
+			
+			console.log(`[A11Y] Enviando requisição para: ${this.opts.endpoint}`);
 
 			let headers: Record<string, string> = {
 				'Content-Type': 'application/json',
@@ -216,13 +236,20 @@ export class IAClient {
 				body: JSON.stringify(body)
 			});
 
+			console.log(`[A11Y] Resposta HTTP: ${resp.status}`);
+
 			if (!resp.ok) {
 				const errorText = await resp.text();
+				console.log(`[A11Y] Erro na resposta: ${errorText.slice(0, 500)}`);
 				throw new Error(`HTTP ${resp.status}: ${errorText.slice(0, 200)}`);
 			}
 
-			return this.parseVisionResponse(await resp.text(), provider);
+			const responseText = await resp.text();
+			console.log(`[A11Y] Resposta da LLM: ${responseText.slice(0, 500)}`);
+
+			return this.parseVisionResponse(responseText, provider);
 		} catch (err) {
+			console.log(`[A11Y] Erro: ${(err as Error).message}`);
 			vscode.window.showWarningMessage(
 				`Falha na análise de imagem local, usando heurística: ${(err as Error).message}`
 			);
@@ -1253,11 +1280,95 @@ REGRAS:
 	}
 }
 
+/**
+ * Carrega configurações de um arquivo .env na raiz do workspace
+ */
+function loadEnvConfig(): Record<string, string> {
+	const envVars: Record<string, string> = {};
+	
+	try {
+		const workspaceFolders = vscode.workspace.workspaceFolders;
+		console.log(`[A11Y] loadEnvConfig - workspaceFolders: ${workspaceFolders?.length || 0}`);
+		
+		if (!workspaceFolders || workspaceFolders.length === 0) {
+			console.log('[A11Y] Nenhum workspace folder encontrado');
+			return envVars;
+		}
+		
+		const workspaceRoot = workspaceFolders[0].uri.fsPath;
+		console.log(`[A11Y] workspaceRoot: ${workspaceRoot}`);
+		
+		const envPath = path.join(workspaceRoot, '.env');
+		console.log(`[A11Y] Procurando .env em: ${envPath}`);
+		console.log(`[A11Y] Arquivo existe: ${fs.existsSync(envPath)}`);
+		
+		if (fs.existsSync(envPath)) {
+			const envContent = fs.readFileSync(envPath, 'utf-8');
+			console.log(`[A11Y] Conteúdo do .env (primeiros 200 chars): ${envContent.slice(0, 200)}`);
+			const lines = envContent.split('\n');
+			
+			for (const line of lines) {
+				const trimmed = line.trim();
+				// Ignorar comentários e linhas vazias
+				if (!trimmed || trimmed.startsWith('#')) continue;
+				
+				const eqIndex = trimmed.indexOf('=');
+				if (eqIndex > 0) {
+					const key = trimmed.substring(0, eqIndex).trim();
+					let value = trimmed.substring(eqIndex + 1).trim();
+					// Remover aspas se presentes
+					if ((value.startsWith('"') && value.endsWith('"')) || 
+					    (value.startsWith("'") && value.endsWith("'"))) {
+						value = value.slice(1, -1);
+					}
+					envVars[key] = value;
+					console.log(`[A11Y] Variável carregada: ${key} = ${key.includes('KEY') ? '***' : value}`);
+				}
+			}
+			console.log(`[A11Y] Total de variáveis carregadas: ${Object.keys(envVars).length}`);
+		} else {
+			console.log(`[A11Y] Arquivo .env NÃO encontrado em: ${envPath}`);
+		}
+	} catch (err) {
+		console.log(`[A11Y] Erro ao carregar .env: ${(err as Error).message}`);
+	}
+	
+	return envVars;
+}
+
 export function createIAClient(): IAClient {
+	// Carregar variáveis do arquivo .env
+	const envConfig = loadEnvConfig();
+	
+	// Ler configurações do VS Code
 	const config = vscode.workspace.getConfiguration('svgA11yAssist');
-	const apiKey = config.get<string>('apiKey') || process.env.SVG_A11Y_API_KEY || '';
-	const endpoint = config.get<string>('endpoint') || '';
-	const model = config.get<string>('model') || '';
-	const useVision = config.get<boolean>('useVision') ?? false;
+	
+	// Prioridade: VS Code settings > .env > variáveis de ambiente do sistema
+	const apiKey = config.get<string>('apiKey') 
+		|| envConfig['SVG_A11Y_API_KEY'] 
+		|| envConfig['OPENAI_API_KEY']
+		|| envConfig['ANTHROPIC_API_KEY']
+		|| envConfig['GOOGLE_API_KEY']
+		|| process.env.SVG_A11Y_API_KEY 
+		|| '';
+		
+	const endpoint = config.get<string>('endpoint') 
+		|| envConfig['SVG_A11Y_ENDPOINT']
+		|| envConfig['OPENAI_ENDPOINT']
+		|| '';
+		
+	const model = config.get<string>('model') 
+		|| envConfig['SVG_A11Y_MODEL']
+		|| '';
+		
+	// Prioridade: VS Code settings > .env > false
+	const vscodeUseVision = config.get<boolean>('useVision');
+	const envUseVision = envConfig['SVG_A11Y_USE_VISION'] === 'true';
+	const useVision = vscodeUseVision !== undefined ? vscodeUseVision : envUseVision;
+	
+	console.log(`[A11Y] createIAClient - apiKey presente: ${!!apiKey && apiKey.length > 0}`);
+	console.log(`[A11Y] createIAClient - endpoint: ${endpoint}`);
+	console.log(`[A11Y] createIAClient - useVision: ${useVision}`);
+	
 	return new IAClient({ apiKey, endpoint, model, useVision });
 }
