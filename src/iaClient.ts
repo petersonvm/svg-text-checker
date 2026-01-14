@@ -65,11 +65,15 @@ export class IAClient {
 			return this.mockImgHeuristic(imgSrc, imgTag);
 		}
 
+		// Ler configuração de visão dinamicamente (pode ter mudado desde a criação do cliente)
+		const config = vscode.workspace.getConfiguration('svgA11yAssist');
+		const useVision = config.get<boolean>('useVision') ?? this.opts.useVision;
+
 		// Verificar se é URL externa (http/https) ou caminho local
 		const isExternalUrl = imgSrc.startsWith('http://') || imgSrc.startsWith('https://') || imgSrc.startsWith('data:');
 
 		// Se modo visão está habilitado
-		if (this.opts.useVision) {
+		if (useVision) {
 			if (isExternalUrl) {
 				// URL externa: enviar diretamente para IA
 				return this.suggestImgWithVision(imgSrc, imgTag);
