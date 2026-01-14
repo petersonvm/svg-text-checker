@@ -12,37 +12,48 @@
     .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; }
     .warning { background: #fff3cd; color: #856404; }
     .ok { background: #d4edda; color: #155724; }
-    .description { color: #666; font-size: 0.9rem; margin-bottom: 1rem; }
+    .description { color: #666; font-size: 0.9rem; margin-bottom: 0.5rem; }
+    .expected { color: #0066cc; font-size: 0.85rem; font-style: italic; margin-bottom: 1rem; padding: 0.5rem; background: #e3f2fd; border-radius: 4px; }
     hr { border: none; border-top: 1px dashed #ddd; margin: 2rem 0; }
   </style>
 </head>
 <body>
   <h1>🧪 Casos de Teste - SVG A11Y Assist</h1>
   <p>Esta página contém exemplos de SVGs para testar a extensão. Os casos marcados com <span class="status warning">⚠️ DETECTA</span> devem gerar um warning e oferecer Quick Fix.</p>
+  <p><strong>Regras de detecção heurística:</strong></p>
+  <ul>
+    <li><strong>Fase 1:</strong> Análise do path d="" (coração: "21.35")</li>
+    <li><strong>Fase 2:</strong> Análise de cor fill (rosa/vermelho = coração)</li>
+    <li><strong>Fase 3A:</strong> Gráficos (rects ≥3 + lines, diagrama com texto)</li>
+    <li><strong>Fase 3B:</strong> Ícones simples (menu: 3 linhas, fechar: 2 linhas X, busca: círculo + linha)</li>
+    <li><strong>Fase 4:</strong> Keywords (heart, search, menu, close, bell, etc.)</li>
+  </ul>
 
   <hr>
   <h2>📋 CASOS QUE DEVEM SER DETECTADOS (Gerar Warning)</h2>
 
   <!-- ============================================ -->
-  <!-- CASO 1: SVG básico sem nenhuma acessibilidade -->
+  <!-- CASO 1: SVG básico - forma simples decorativa -->
+  <!-- Detecção: isSimpleDecorativeShape = true -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> 1. SVG básico sem acessibilidade</h2>
-    <p class="description">SVG simples sem title, desc ou aria-hidden. O plugin deve detectar e sugerir correção.</p>
-    <svg width="80" height="80" viewBox="0 0 80 80" aria-hidden="true">
+    <h2><span class="status warning">⚠️ DETECTA</span> 1. SVG básico - círculo simples</h2>
+    <p class="description">SVG simples sem texto, sem path complexo. Deve ser detectado como decorativo.</p>
+    <p class="expected">✨ Esperado: aria-hidden="true" (decorativo)</p>
+    <svg width="80" height="80" viewBox="0 0 80 80">
       <circle cx="40" cy="40" r="30" fill="#0099ff" />
     </svg>
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO 2: Ícone de ação sem acessibilidade -->
+  <!-- CASO 2: Ícone de menu hamburger -->
+  <!-- Detecção: Fase 3B - 3 linhas horizontais, rectCount=0 -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> 2. Ícone de menu (hamburger) sem acessibilidade</h2>
-    <p class="description">Ícone que representa uma ação - deve ter texto alternativo.</p>
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"   role="img" aria-labelledby="svg-title-n4kvhy">
-  <title id="svg-title-n4kvhy">Abrir menu de navegação</title>
-
+    <h2><span class="status warning">⚠️ DETECTA</span> 2. Ícone de menu (hamburger)</h2>
+    <p class="description">Ícone com 3 linhas horizontais paralelas.</p>
+    <p class="expected">✨ Esperado: title="Abrir menu de navegação"</p>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <line x1="3" y1="6" x2="21" y2="6"/>
       <line x1="3" y1="12" x2="21" y2="12"/>
       <line x1="3" y1="18" x2="21" y2="18"/>
@@ -50,11 +61,13 @@
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO 3: Ícone de fechar sem acessibilidade -->
+  <!-- CASO 3: Ícone de fechar (X) -->
+  <!-- Detecção: Fase 3B - 2 linhas cruzadas, rectCount=0 -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> 3. Ícone de fechar (X) sem acessibilidade</h2>
-    <p class="description">Ícone de ação comum que precisa de descrição.</p>
+    <h2><span class="status warning">⚠️ DETECTA</span> 3. Ícone de fechar (X)</h2>
+    <p class="description">Ícone com 2 linhas que formam um X.</p>
+    <p class="expected">✨ Esperado: title="Fechar"</p>
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
       <line x1="18" y1="6" x2="6" y2="18"/>
       <line x1="6" y1="6" x2="18" y2="18"/>
@@ -62,14 +75,14 @@
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO 4: Gráfico de barras sem acessibilidade -->
+  <!-- CASO 4: Gráfico de barras -->
+  <!-- Detecção: Fase 3A - rectCount=4 + lineCount=2 (eixos) -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> 4. Gráfico de barras sem acessibilidade</h2>
-    <p class="description">Gráfico complexo que precisa de title E desc para ser acessível.</p>
-    <svg width="200" height="120" viewBox="0 0 200 120"  role="img" aria-labelledby="svg-title-gjwy5x">
-  <title id="svg-title-gjwy5x">Fechar</title>
-
+    <h2><span class="status warning">⚠️ DETECTA</span> 4. Gráfico de barras</h2>
+    <p class="description">Gráfico com 4 barras (rect) e 2 linhas (eixos X e Y).</p>
+    <p class="expected">✨ Esperado: title="Gráfico de barras" + desc</p>
+    <svg width="200" height="120" viewBox="0 0 200 120">
       <rect x="10" y="60" width="30" height="50" fill="#4caf50" />
       <rect x="50" y="30" width="30" height="80" fill="#2196f3" />
       <rect x="90" y="45" width="30" height="65" fill="#ff9800" />
@@ -80,14 +93,14 @@
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO 5: Logo sem acessibilidade -->
+  <!-- CASO 5: Logo com texto -->
+  <!-- Detecção: looksLikeLogo + hasText → Logotipo ACME -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> 5. Logo da empresa sem acessibilidade</h2>
-    <p class="description">Logos são informativos e precisam de texto alternativo.</p>
-    <svg width="120" height="40" viewBox="0 0 120 40" role="img" aria-labelledby="svg-title-0tt80l">
-  <title id="svg-title-0tt80l">Fechar</title>
-
+    <h2><span class="status warning">⚠️ DETECTA</span> 5. Logo da empresa com texto</h2>
+    <p class="description">Logo com rect de fundo, texto "ACME" e círculo decorativo.</p>
+    <p class="expected">✨ Esperado: title="Logotipo ACME"</p>
+    <svg width="120" height="40" viewBox="0 0 120 40">
       <rect x="0" y="0" width="120" height="40" fill="#1a1a2e" rx="5"/>
       <text x="10" y="28" font-family="Arial" font-size="20" fill="white" font-weight="bold">ACME</text>
       <circle cx="100" cy="20" r="12" fill="#e94560"/>
@@ -95,11 +108,13 @@
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO 6: Ícone de busca sem acessibilidade -->
+  <!-- CASO 6: Ícone de busca (lupa) -->
+  <!-- Detecção: Fase 3B - 1 círculo + 1 linha, rectCount=0 -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> 6. Ícone de busca (lupa) sem acessibilidade</h2>
-    <p class="description">Ícone funcional que indica ação de pesquisa.</p>
+    <h2><span class="status warning">⚠️ DETECTA</span> 6. Ícone de busca (lupa)</h2>
+    <p class="description">Ícone com 1 círculo (lente) e 1 linha (cabo).</p>
+    <p class="expected">✨ Esperado: title="Pesquisar"</p>
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2">
       <circle cx="11" cy="11" r="8"/>
       <line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -107,15 +122,17 @@
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO 7: Diagrama/Fluxograma sem acessibilidade -->
+  <!-- CASO 7: Diagrama de fluxo -->
+  <!-- Detecção: Fase 3A - rectCount>=2 + lineCount>=1 + textCount>=1 -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> 7. Diagrama de fluxo sem acessibilidade</h2>
-    <p class="description">Diagramas são complexos e precisam de descrição detalhada.</p>
-    <svg width="250" height="100" viewBox="0 0 250 100" role="img">
+    <h2><span class="status warning">⚠️ DETECTA</span> 7. Diagrama de fluxo</h2>
+    <p class="description">Diagrama com 3 caixas (rect), linhas conectoras e textos.</p>
+    <p class="expected">✨ Esperado: title="Diagrama de fluxo" + desc</p>
+    <svg width="250" height="100" viewBox="0 0 250 100">
       <rect x="10" y="30" width="60" height="40" fill="#e3f2fd" stroke="#2196f3" stroke-width="2" rx="5"/>
       <text x="25" y="55" font-size="12" fill="#333">Início</text>
-      <line x1="70" y1="50" x2="100" y2="50" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+      <line x1="70" y1="50" x2="100" y2="50" stroke="#333" stroke-width="2"/>
       <rect x="100" y="30" width="60" height="40" fill="#fff3e0" stroke="#ff9800" stroke-width="2" rx="5"/>
       <text x="108" y="55" font-size="12" fill="#333">Processo</text>
       <line x1="160" y1="50" x2="190" y2="50" stroke="#333" stroke-width="2"/>
@@ -125,22 +142,26 @@
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO 8: Ícone de coração/favorito sem acessibilidade -->
+  <!-- CASO 8: Ícone de coração/favorito -->
+  <!-- Detecção: Fase 1 - path contém "21.35" -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> 8. Ícone de favorito (coração) sem acessibilidade</h2>
-    <p class="description">Ícone de ação para adicionar aos favoritos.</p>
+    <h2><span class="status warning">⚠️ DETECTA</span> 8. Ícone de favorito (coração)</h2>
+    <p class="description">Ícone com path que contém "21.35" (padrão de coração).</p>
+    <p class="expected">✨ Esperado: title="Adicionar aos favoritos"</p>
     <svg width="24" height="24" viewBox="0 0 24 24" fill="#e91e63">
       <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
     </svg>
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO 9: Gráfico de pizza sem acessibilidade -->
+  <!-- CASO 9: Gráfico de pizza -->
+  <!-- Detecção: Fase 3A - pathCount>=3 com arcos (A) -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> 9. Gráfico de pizza sem acessibilidade</h2>
-    <p class="description">Gráficos de dados precisam de descrição para usuários de leitor de tela.</p>
+    <h2><span class="status warning">⚠️ DETECTA</span> 9. Gráfico de pizza</h2>
+    <p class="description">Gráfico circular com 3 fatias (paths com comandos A - arcos).</p>
+    <p class="expected">✨ Esperado: title="Gráfico de distribuição" + desc</p>
     <svg width="150" height="150" viewBox="0 0 150 150">
       <circle cx="75" cy="75" r="60" fill="#e3f2fd"/>
       <path d="M75 75 L75 15 A60 60 0 0 1 129.5 97.5 Z" fill="#2196f3"/>
@@ -150,15 +171,73 @@
   </section>
 
   <!-- ============================================ -->
-  <!-- CASO 10: Ícone de notificação/sino sem acessibilidade -->
+  <!-- CASO 10: Ícone de notificação/sino -->
+  <!-- Detecção: Fase 3B - pathCount>=1 + circleCount>=1 com r pequeno -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status warning">⚠️ DETECTA</span> 10. Ícone de notificação sem acessibilidade</h2>
-    <p class="description">Ícone que indica notificações pendentes.</p>
+    <h2><span class="status warning">⚠️ DETECTA</span> 10. Ícone de notificação (sino)</h2>
+    <p class="description">Ícone com paths (sino) e círculo pequeno (badge r="3").</p>
+    <p class="expected">✨ Esperado: title="Ver notificações"</p>
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
       <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
       <circle cx="18" cy="5" r="3" fill="#e91e63" stroke="none"/>
+    </svg>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO 11: Ícone com keyword "search" no ID -->
+  <!-- Detecção: Fase 4 - keyword pattern /search/i -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> 11. Ícone com ID contendo keyword</h2>
+    <p class="description">SVG com id="icon-search" - detectado por keyword.</p>
+    <p class="expected">✨ Esperado: title="Pesquisar" (via keyword)</p>
+    <svg id="icon-search" width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z"/>
+    </svg>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO 12: Ícone de editar (lápis) -->
+  <!-- Detecção: Fase 4 - keyword pattern /edit|pencil/i -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> 12. Ícone de editar via classe</h2>
+    <p class="description">SVG com class="icon-edit pencil" - detectado por keyword.</p>
+    <p class="expected">✨ Esperado: title="Editar" (via keyword)</p>
+    <svg class="icon-edit pencil" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </svg>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO 13: Ícone de configurações -->
+  <!-- Detecção: Fase 4 - keyword pattern /settings|gear/i -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> 13. Ícone de configurações</h2>
+    <p class="description">SVG com data-icon="settings" - detectado por keyword.</p>
+    <p class="expected">✨ Esperado: title="Abrir configurações" (via keyword)</p>
+    <svg data-icon="settings" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4"/>
+    </svg>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO 14: Ícone de carrinho de compras -->
+  <!-- Detecção: Fase 4 - keyword pattern /cart|shop/i -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> 14. Ícone de carrinho</h2>
+    <p class="description">SVG com class="shopping-cart" - detectado por keyword.</p>
+    <p class="expected">✨ Esperado: title="Ver carrinho de compras" (via keyword)</p>
+    <svg class="shopping-cart" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <circle cx="9" cy="21" r="1"/>
+      <circle cx="20" cy="21" r="1"/>
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
     </svg>
   </section>
 
@@ -169,7 +248,7 @@
   <!-- CASO OK 1: SVG decorativo com aria-hidden -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status ok">✅ OK</span> SVG decorativo com aria-hidden="true"</h2>
+    <h2><span class="status ok">✅ OK</span> A. SVG decorativo com aria-hidden="true"</h2>
     <p class="description">SVG marcado como decorativo - não precisa de texto alternativo.</p>
     <svg aria-hidden="true" width="40" height="40" viewBox="0 0 40 40">
       <rect x="5" y="5" width="30" height="30" fill="#999" />
@@ -180,7 +259,7 @@
   <!-- CASO OK 2: SVG com title -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status ok">✅ OK</span> SVG com &lt;title&gt;</h2>
+    <h2><span class="status ok">✅ OK</span> B. SVG com &lt;title&gt;</h2>
     <p class="description">SVG possui elemento title - acessível para leitores de tela.</p>
     <svg width="100" height="40" viewBox="0 0 100 40">
       <title>Logo Exemplo</title>
@@ -192,7 +271,7 @@
   <!-- CASO OK 3: SVG com title e desc -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status ok">✅ OK</span> SVG com &lt;title&gt; e &lt;desc&gt;</h2>
+    <h2><span class="status ok">✅ OK</span> C. SVG com &lt;title&gt; e &lt;desc&gt;</h2>
     <p class="description">SVG completo com título e descrição - ideal para gráficos complexos.</p>
     <svg width="120" height="60" viewBox="0 0 120 60" role="img" aria-labelledby="chart-title chart-desc">
       <title id="chart-title">Gráfico de comparação</title>
@@ -206,13 +285,87 @@
   <!-- CASO OK 4: SVG com apenas desc -->
   <!-- ============================================ -->
   <section>
-    <h2><span class="status ok">✅ OK</span> SVG com apenas &lt;desc&gt;</h2>
+    <h2><span class="status ok">✅ OK</span> D. SVG com apenas &lt;desc&gt;</h2>
     <p class="description">SVG com descrição - também é considerado acessível.</p>
     <svg width="60" height="60" viewBox="0 0 60 60">
       <desc>Círculo azul decorativo</desc>
       <circle cx="30" cy="30" r="25" fill="#2196f3"/>
     </svg>
   </section>
+
+  <hr>
+  <h2>📊 Resumo das Regras de Detecção</h2>
+  <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+    <thead>
+      <tr style="background: #f0f0f0;">
+        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Fase</th>
+        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Critério</th>
+        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Resultado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fase 1</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">path d="" contém "21.35" ou "8.5.*5.42"</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">"Adicionar aos favoritos"</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fase 2</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">fill rosa/vermelho + viewBox 24x24 + path longo</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">"Adicionar aos favoritos"</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fase 3A</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">rectCount ≥ 3 + lineCount ≥ 1</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">"Gráfico de barras"</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fase 3A</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">pathCount ≥ 3 com arcos (A)</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">"Gráfico de distribuição"</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fase 3A</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">rectCount ≥ 2 + lineCount ≥ 1 + textCount ≥ 1</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">"Diagrama de fluxo"</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fase 3B</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">circleCount = 1 + lineCount = 1 (sem rects)</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">"Pesquisar"</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fase 3B</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">lineCount = 3 horizontais (sem rects)</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">"Abrir menu de navegação"</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fase 3B</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">lineCount = 2 cruzadas (sem rects)</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">"Fechar"</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fase 3B</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">pathCount ≥ 1 + círculo com r ≤ 5</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">"Ver notificações"</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fase 4</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Keywords: search, menu, close, heart, edit, cart, etc.</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Título correspondente</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fallback</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">looksLikeLogo + hasText</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">"Logotipo [TEXTO]"</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fallback</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">isSimpleDecorativeShape</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">aria-hidden="true"</td>
+      </tr>
+    </tbody>
+  </table>
 
 </body>
 </html>
