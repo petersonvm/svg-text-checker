@@ -373,7 +373,16 @@
   <hr>
   <h1>🖼️ Casos de Teste - IMG (Imagens)</h1>
   <p>Casos de teste para a detecção de tags <code>&lt;img&gt;</code> sem atributo <code>alt</code>.</p>
-  <p><strong>Regras de detecção heurística para IMG:</strong></p>
+  
+  <h3>🔍 Modos de Análise:</h3>
+  <ul>
+    <li><strong>Com Visão + Arquivo Local:</strong> A imagem é lida do disco, convertida para base64 e enviada para a LLM analisar visualmente</li>
+    <li><strong>Com Visão + URL Externa:</strong> A URL é enviada diretamente para a LLM analisar</li>
+    <li><strong>Sem Visão:</strong> Apenas o nome/caminho do arquivo é enviado para a LLM sugerir alt baseado no contexto</li>
+    <li><strong>Sem API:</strong> Heurística local baseada em padrões do nome do arquivo</li>
+  </ul>
+  
+  <h3>📋 Regras de detecção heurística (fallback sem API):</h3>
   <ul>
     <li><strong>Fase 1:</strong> Padrões decorativos (spacer, background, pattern, etc.)</li>
     <li><strong>Fase 2:</strong> Ícones por nome de arquivo (icon-search, icon-menu, etc.)</li>
@@ -388,34 +397,37 @@
   <!-- ============================================ -->
   <!-- CASO IMG 1: Imagem local com nome hash -->
   <!-- Usa: img/1602180423fge0i9cidg.jpg (arquivo real) -->
+  <!-- Com visão: LLM recebe a imagem em base64 para analisar -->
   <!-- ============================================ -->
   <section>
     <h2><span class="status warning">⚠️ DETECTA</span> IMG 1. Imagem com nome hash (arquivo real)</h2>
-    <p class="description">Imagem com nome gerado automaticamente - não há como inferir o conteúdo.</p>
-    <p class="expected">✨ Esperado: alt="[Descrição da imagem]" (placeholder para revisão)</p>
-    <img src="img/1602180423fge0i9cidg.jpg" width="200" alt="Fge i cidg">
+    <p class="description">Imagem com nome gerado automaticamente. <strong>Com modo visão:</strong> a imagem é enviada para a LLM analisar.</p>
+    <p class="expected">✨ Esperado (com visão): descrição real do conteúdo da imagem | (sem visão): "[Descrição da imagem]"</p>
+    <img src="img/1602180423fge0i9cidg.jpg" width="200">
   </section>
 
   <!-- ============================================ -->
   <!-- CASO IMG 2: Logo Toyota (arquivo real) -->
   <!-- Usa: img/toyota.png -->
+  <!-- Com visão: LLM recebe a imagem em base64 para analisar -->
   <!-- ============================================ -->
   <section>
     <h2><span class="status warning">⚠️ DETECTA</span> IMG 2. Logo Toyota sem alt (arquivo real)</h2>
-    <p class="description">Logo que deveria ter texto alternativo descritivo.</p>
-    <p class="expected">✨ Esperado: alt="Toyota" (extraído do nome do arquivo)</p>
-    <img src="img/toyota.png" width="120" alt="Toyota">
+    <p class="description">Logo que deveria ter texto alternativo descritivo. <strong>Com modo visão:</strong> a imagem é enviada para a LLM.</p>
+    <p class="expected">✨ Esperado (com visão): "Logo Toyota" ou similar | (sem visão): "Toyota"</p>
+    <img src="img/toyota.png" width="120">
   </section>
 
   <!-- ============================================ -->
   <!-- CASO IMG 3: Imagem de URL externa sem alt -->
   <!-- Usa: URL externa real -->
+  <!-- Com visão: LLM recebe a URL diretamente para analisar -->
   <!-- ============================================ -->
   <section>
     <h2><span class="status warning">⚠️ DETECTA</span> IMG 3. Imagem de URL externa sem alt</h2>
-    <p class="description">Imagem carregada de URL externa. Com modo visão ativado, a IA pode analisar o conteúdo.</p>
-    <p class="expected">✨ Esperado: Com visão IA = descrição do conteúdo | Sem IA = "Arc raiders expedition will change"</p>
-    <img src="https://frvr.com/wp-content/uploads/2026/01/arc-raiders-expedition-will-change.jpg" width="400" alt="Arc raiders expedition will change">
+    <p class="description">Imagem carregada de URL externa. <strong>Com modo visão:</strong> a URL é enviada diretamente para a LLM.</p>
+    <p class="expected">✨ Esperado (com visão): descrição do conteúdo visual | (sem visão): "Arc raiders expedition will change"</p>
+    <img src="https://frvr.com/wp-content/uploads/2026/01/arc-raiders-expedition-will-change.jpg" width="400">
   </section>
 
   <!-- ============================================ -->
@@ -517,7 +529,40 @@
   </section>
 
   <hr>
-  <h2>📊 Resumo das Regras de Detecção para IMG</h2>
+  <h2>📊 Modos de Análise para IMG</h2>
+  <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+    <thead>
+      <tr style="background: #e3f2fd;">
+        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Modo</th>
+        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Tipo de Imagem</th>
+        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">O que é enviado para a LLM</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">🔮 Visão + Local</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">img/arquivo.jpg</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Arquivo lido e convertido para base64</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">🔮 Visão + URL</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">https://...</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">URL enviada diretamente para análise visual</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">📝 Texto</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Qualquer</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Nome/caminho do arquivo + tag HTML</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">🔧 Heurística</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Qualquer (sem API)</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Análise local de padrões no nome</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>📊 Regras de Heurística (fallback sem API)</h2>
   <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
     <thead>
       <tr style="background: #f0f0f0;">
