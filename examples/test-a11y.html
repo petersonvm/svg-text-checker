@@ -2,11 +2,11 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Teste - SVG A11Y Assist</title>
+  <title>Teste - A11Y Assist (SVG + IMG)</title>
   <style>
     body { font-family: system-ui, sans-serif; margin: 2rem; background: #f5f5f5; }
     section { margin-bottom: 2rem; padding: 1.5rem; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    svg { border: 1px solid #ccc; margin: 0.5rem; background: white; }
+    svg, img { border: 1px solid #ccc; margin: 0.5rem; background: white; }
     h1 { color: #333; border-bottom: 2px solid #0099ff; padding-bottom: 0.5rem; }
     h2 { font-size: 1.1rem; margin-top: 0; color: #555; }
     .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; }
@@ -18,9 +18,12 @@
   </style>
 </head>
 <body>
-  <h1>🧪 Casos de Teste - SVG A11Y Assist</h1>
-  <p>Esta página contém exemplos de SVGs para testar a extensão. Os casos marcados com <span class="status warning">⚠️ DETECTA</span> devem gerar um warning e oferecer Quick Fix.</p>
-  <p><strong>Regras de detecção heurística:</strong></p>
+  <h1>🧪 Casos de Teste - A11Y Assist (SVG + IMG)</h1>
+  <p>Esta página contém exemplos de SVGs e imagens para testar a extensão. Os casos marcados com <span class="status warning">⚠️ DETECTA</span> devem gerar um warning e oferecer Quick Fix.</p>
+
+  <hr>
+  <h1>🎨 Casos de Teste - SVG</h1>
+  <p><strong>Regras de detecção heurística para SVG:</strong></p>
   <ul>
     <li><strong>Fase 1:</strong> Análise do path d="" (coração: "21.35")</li>
     <li><strong>Fase 2:</strong> Análise de cor fill (rosa/vermelho = coração)</li>
@@ -30,7 +33,7 @@
   </ul>
 
   <hr>
-  <h2>📋 CASOS QUE DEVEM SER DETECTADOS (Gerar Warning)</h2>
+  <h2>📋 SVGs QUE DEVEM SER DETECTADOS (Gerar Warning)</h2>
 
   <!-- ============================================ -->
   <!-- CASO 1: SVG básico - forma simples decorativa -->
@@ -363,6 +366,184 @@
         <td style="border: 1px solid #ddd; padding: 8px;">Fallback</td>
         <td style="border: 1px solid #ddd; padding: 8px;">isSimpleDecorativeShape</td>
         <td style="border: 1px solid #ddd; padding: 8px;">aria-hidden="true"</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+  <h1>🖼️ Casos de Teste - IMG (Imagens)</h1>
+  <p>Casos de teste para a detecção de tags <code>&lt;img&gt;</code> sem atributo <code>alt</code>.</p>
+  <p><strong>Regras de detecção heurística para IMG:</strong></p>
+  <ul>
+    <li><strong>Fase 1:</strong> Padrões decorativos (spacer, background, pattern, etc.)</li>
+    <li><strong>Fase 2:</strong> Ícones por nome de arquivo (icon-search, icon-menu, etc.)</li>
+    <li><strong>Fase 3:</strong> Logos e marcas (logo-*, *-logo)</li>
+    <li><strong>Fase 4:</strong> Tipos de conteúdo (banner, hero, product, etc.)</li>
+    <li><strong>Fase 5:</strong> Fallback para nome do arquivo</li>
+  </ul>
+
+  <hr>
+  <h2>📋 IMAGENS QUE DEVEM SER DETECTADAS (Gerar Warning)</h2>
+
+  <!-- ============================================ -->
+  <!-- CASO IMG 1: Imagem sem alt -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> IMG 1. Imagem simples sem alt</h2>
+    <p class="description">Imagem de produto sem atributo alt.</p>
+    <p class="expected">✨ Esperado: alt baseado no nome do arquivo</p>
+    <img src="img/produto-celular-samsung.jpg" width="200">
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO IMG 2: Logo sem alt -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> IMG 2. Logo da empresa sem alt</h2>
+    <p class="description">Logo que deveria ter texto alternativo descritivo.</p>
+    <p class="expected">✨ Esperado: alt="Logo Toyota" (extraído do nome)</p>
+    <img src="img/logo-toyota.png" width="120">
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO IMG 3: Ícone de busca sem alt -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> IMG 3. Ícone de busca sem alt</h2>
+    <p class="description">Ícone funcional que precisa de texto alternativo.</p>
+    <p class="expected">✨ Esperado: alt="Pesquisar"</p>
+    <img src="img/icon-search.svg" width="24" height="24">
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO IMG 4: Banner promocional sem alt -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> IMG 4. Banner promocional sem alt</h2>
+    <p class="description">Banner que comunica promoção importante.</p>
+    <p class="expected">✨ Esperado: alt="Banner promocional" ou baseado no nome</p>
+    <img src="img/banner-black-friday.jpg" width="400">
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO IMG 5: Foto de perfil sem alt -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> IMG 5. Foto de perfil/avatar sem alt</h2>
+    <p class="description">Imagem de usuário que precisa de descrição.</p>
+    <p class="expected">✨ Esperado: alt="Foto de perfil"</p>
+    <img src="img/avatar-user-profile.png" width="60" height="60">
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO IMG 6: Gráfico sem alt -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> IMG 6. Gráfico/infográfico sem alt</h2>
+    <p class="description">Imagem complexa que precisa de descrição detalhada.</p>
+    <p class="expected">✨ Esperado: alt="Gráfico" ou descrição baseada no nome</p>
+    <img src="img/chart-vendas-2024.png" width="300">
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO IMG 7: Imagem com nome genérico -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> IMG 7. Imagem com nome genérico/hash</h2>
+    <p class="description">Imagem com nome de arquivo gerado automaticamente.</p>
+    <p class="expected">✨ Esperado: alt="[Descrição da imagem]" (placeholder)</p>
+    <img src="img/1602180423fge0i9cidg.jpg" width="200">
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO IMG 8: Ícone de carrinho sem alt -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status warning">⚠️ DETECTA</span> IMG 8. Ícone de carrinho sem alt</h2>
+    <p class="description">Ícone funcional de e-commerce.</p>
+    <p class="expected">✨ Esperado: alt="Carrinho de compras"</p>
+    <img src="img/icon-cart-shopping.png" width="24" height="24">
+  </section>
+
+  <hr>
+  <h2>✅ IMAGENS QUE NÃO DEVEM SER DETECTADAS (Já acessíveis)</h2>
+
+  <!-- ============================================ -->
+  <!-- CASO IMG OK 1: Imagem com alt descritivo -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status ok">✅ OK</span> IMG A. Imagem com alt descritivo</h2>
+    <p class="description">Imagem com texto alternativo apropriado.</p>
+    <img src="img/toyota.png" alt="Logo da Toyota - marca japonesa de automóveis" width="120">
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO IMG OK 2: Imagem decorativa com alt vazio -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status ok">✅ OK</span> IMG B. Imagem decorativa com alt=""</h2>
+    <p class="description">Imagem decorativa corretamente marcada com alt vazio.</p>
+    <img src="img/decorative-border.png" alt="" width="100%">
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO IMG OK 3: Imagem com aria-hidden -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status ok">✅ OK</span> IMG C. Imagem com aria-hidden="true"</h2>
+    <p class="description">Imagem oculta de leitores de tela.</p>
+    <img src="img/spacer.gif" aria-hidden="true" width="1" height="1">
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CASO IMG OK 4: Imagem com role="presentation" -->
+  <!-- ============================================ -->
+  <section>
+    <h2><span class="status ok">✅ OK</span> IMG D. Imagem com role="presentation"</h2>
+    <p class="description">Imagem marcada como apresentacional.</p>
+    <img src="img/background-pattern.jpg" role="presentation" width="200">
+  </section>
+
+  <hr>
+  <h2>📊 Resumo das Regras de Detecção para IMG</h2>
+  <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+    <thead>
+      <tr style="background: #f0f0f0;">
+        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Fase</th>
+        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Padrão no src/tag</th>
+        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Resultado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fase 1</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">decorative, spacer, blank, background, pattern</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">alt="" (decorativa)</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fase 2</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">icon-search, icon-menu, icon-cart, etc.</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">alt="Pesquisar", "Menu", etc.</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fase 3</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">logo-*, *-logo, brand-*</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">alt="Logo [marca]"</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fase 4</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">banner-*, hero-*, product-*, chart-*</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">alt="Banner...", "Produto...", etc.</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fase 5</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Nome do arquivo limpo</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">alt="[nome formatado]"</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Fallback</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Nome não identificável</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">alt="[Descrição da imagem]"</td>
       </tr>
     </tbody>
   </table>

@@ -51,6 +51,25 @@ export class IAClient {
 	}
 
 	/**
+	 * Analisa uma tag <img> e sugere texto alt apropriado
+	 * Usa visão de IA quando disponível, caso contrário usa heurística baseada no src
+	 */
+	async suggestForImg(imgSrc: string, imgTag: string): Promise<IAResponseSuggestion> {
+		// Se não tem endpoint/key, usar heurística baseada no nome do arquivo
+		if (!this.opts.endpoint || !this.opts.apiKey) {
+			return this.mockImgHeuristic(imgSrc, imgTag);
+		}
+
+		// Se modo visão está habilitado e a imagem é acessível, usar IA com visão
+		if (this.opts.useVision && imgSrc) {
+			return this.suggestImgWithVision(imgSrc, imgTag);
+		}
+
+		// Modo texto: usar heurística baseada no src
+		return this.mockImgHeuristic(imgSrc, imgTag);;
+	}
+
+	/**
 	 * Análise via prompt de texto (modo tradicional)
 	 */
 	private async suggestWithText(svgCode: string): Promise<IAResponseSuggestion> {
@@ -170,6 +189,363 @@ export class IAClient {
 			// Fallback para modo texto
 			return this.suggestWithText(svgCode);
 		}
+	}
+
+	/**
+	 * Analisa uma imagem usando modelo de visão de IA
+	 */
+	private async suggestImgWithVision(imgSrc: string, imgTag: string): Promise<IAResponseSuggestion> {
+		try {
+			const provider = detectAIProvider(this.opts.endpoint!);
+			
+			// Criar o prompt específico para análise de imagem
+			const imgPrompt = this.buildImgVisionPrompt();
+			
+			// Determinar se a imagem é URL externa ou caminho local
+			let imageUrl = imgSrc;
+			
+			// Se for caminho relativo, não podemos analisar com visão
+			if (!imgSrc.startsWith('http://') && !imgSrc.startsWith('https://') && !imgSrc.startsWith('data:')) {
+				// Fallback para heurística
+				return this.mockImgHeuristic(imgSrc, imgTag);
+			}
+
+			// Montar payload de imagem para URL
+			const imagePayload = this.buildImgVisionPayload(imageUrl, provider);
+			
+			// Montar body da requisição
+			const body = this.buildImgVisionRequestBody(imagePayload, imgPrompt, provider);
+
+			let headers: Record<string, string> = {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${this.opts.apiKey}`
+			};
+
+			if (provider === 'claude') {
+				headers['anthropic-version'] = '2023-06-01';
+				headers['x-api-key'] = this.opts.apiKey!;
+				delete headers['Authorization'];
+			}
+
+			const resp = await fetch(this.opts.endpoint!, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify(body)
+			});
+
+			if (!resp.ok) {
+				const errorText = await resp.text();
+				throw new Error(`HTTP ${resp.status}: ${errorText.slice(0, 200)}`);
+			}
+
+			return this.parseVisionResponse(await resp.text(), provider);
+		} catch (err) {
+			vscode.window.showWarningMessage(
+				`Falha na análise de imagem com IA, usando heurística: ${(err as Error).message}`
+			);
+			return this.mockImgHeuristic(imgSrc, imgTag);
+		}
+	}
+
+	/**
+	 * Prompt específico para análise de imagens
+	 */
+	private buildImgVisionPrompt(): string {
+		return `Você é um Analista de Conformidade WCAG 2.2 Sênior. Analise esta imagem e forneça um texto alternativo (alt) apropriado.
+
+TAREFA:
+Determine se a imagem é:
+1. DECORATIVA: Não transmite informação, apenas estética
+2. INFORMATIVA: Transmite informação importante
+3. FUNCIONAL: É parte de um link ou botão
+4. COMPLEXA: Gráfico, diagrama ou infográfico que precisa de descrição longa
+
+RESPONDA APENAS COM JSON:
+{
+  "isDecorative": boolean,
+  "titleText": "texto alt sugerido (vazio se decorativa)",
+  "descText": "descrição longa se for imagem complexa"
+}
+
+REGRAS:
+- Se decorativa: isDecorative=true, titleText=""
+- Se informativa: texto alt conciso e descritivo (max 125 caracteres)
+- Se complexa: titleText com resumo + descText com detalhes
+- Não comece com "Imagem de" ou "Foto de"
+- Seja específico e descritivo`;
+	}
+
+	/**
+	 * Cria payload de imagem para modelos de visão
+	 */
+	private buildImgVisionPayload(
+		imageUrl: string,
+		provider: 'openai' | 'claude' | 'gemini' | 'unknown'
+	): object {
+		switch (provider) {
+			case 'openai':
+				return {
+					type: 'image_url',
+					image_url: { url: imageUrl }
+				};
+			case 'claude':
+				return {
+					type: 'image',
+					source: {
+						type: 'url',
+						url: imageUrl
+					}
+				};
+			case 'gemini':
+				return {
+					inline_data: {
+						mime_type: 'image/jpeg',
+						data: imageUrl
+					}
+				};
+			default:
+				return {
+					type: 'image_url',
+					image_url: { url: imageUrl }
+				};
+		}
+	}
+
+	/**
+	 * Monta body para requisição de visão de imagem
+	 */
+	private buildImgVisionRequestBody(
+		imagePayload: object,
+		prompt: string,
+		provider: 'openai' | 'claude' | 'gemini' | 'unknown'
+	): object {
+		switch (provider) {
+			case 'openai':
+				return {
+					model: this.opts.model || 'gpt-4o',
+					messages: [{
+						role: 'user',
+						content: [
+							{ type: 'text', text: prompt },
+							imagePayload
+						]
+					}],
+					max_tokens: 500
+				};
+
+			case 'claude':
+				return {
+					model: this.opts.model || 'claude-3-5-sonnet-20241022',
+					max_tokens: 500,
+					messages: [{
+						role: 'user',
+						content: [
+							imagePayload,
+							{ type: 'text', text: prompt }
+						]
+					}]
+				};
+
+			case 'gemini':
+				return {
+					contents: [{
+						parts: [
+							imagePayload,
+							{ text: prompt }
+						]
+					}],
+					generationConfig: { maxOutputTokens: 500 }
+				};
+
+			default:
+				return {
+					model: this.opts.model || 'auto',
+					messages: [{
+						role: 'user',
+						content: [
+							{ type: 'text', text: prompt },
+							imagePayload
+						]
+					}]
+				};
+		}
+	}
+
+	/**
+	 * Heurística para sugerir alt baseado no nome do arquivo e contexto
+	 */
+	private mockImgHeuristic(imgSrc: string, imgTag: string): IAResponseSuggestion {
+		const lower = imgTag.toLowerCase();
+		const srcLower = imgSrc.toLowerCase();
+		
+		// Extrair nome do arquivo
+		const fileName = imgSrc.split('/').pop()?.split('?')[0] || '';
+		const fileNameNoExt = fileName.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+		
+		// =====================================================
+		// FASE 1: Detectar imagens decorativas
+		// =====================================================
+		
+		// Padrões comuns de imagens decorativas
+		const decorativePatterns = [
+			/decorativ[eo]/i,
+			/spacer/i,
+			/blank/i,
+			/pixel/i,
+			/transparent/i,
+			/bg[-_]?image/i,
+			/background/i,
+			/divider/i,
+			/separator/i,
+			/border/i,
+			/shadow/i,
+			/gradient/i,
+			/pattern/i,
+			/texture/i,
+			/1x1/i,
+			/placeholder/i
+		];
+		
+		for (const pattern of decorativePatterns) {
+			if (pattern.test(srcLower) || pattern.test(lower)) {
+				return { isDecorative: true, titleText: '', descText: '' };
+			}
+		}
+
+		// =====================================================
+		// FASE 2: Detectar ícones
+		// =====================================================
+		
+		const iconPatterns: Array<{ pattern: RegExp; title: string }> = [
+			{ pattern: /icon[-_]?search|search[-_]?icon|lupa|magnif/i, title: 'Pesquisar' },
+			{ pattern: /icon[-_]?menu|menu[-_]?icon|hamburger/i, title: 'Menu' },
+			{ pattern: /icon[-_]?close|close[-_]?icon|x[-_]?icon/i, title: 'Fechar' },
+			{ pattern: /icon[-_]?home|home[-_]?icon|casa/i, title: 'Página inicial' },
+			{ pattern: /icon[-_]?user|user[-_]?icon|avatar|profile/i, title: 'Perfil do usuário' },
+			{ pattern: /icon[-_]?cart|cart[-_]?icon|carrinho|shopping/i, title: 'Carrinho de compras' },
+			{ pattern: /icon[-_]?heart|heart[-_]?icon|favorit/i, title: 'Favoritos' },
+			{ pattern: /icon[-_]?star|star[-_]?icon|estrela/i, title: 'Avaliação' },
+			{ pattern: /icon[-_]?settings|settings[-_]?icon|config|gear|engrenagem/i, title: 'Configurações' },
+			{ pattern: /icon[-_]?bell|bell[-_]?icon|notif|sino/i, title: 'Notificações' },
+			{ pattern: /icon[-_]?mail|mail[-_]?icon|email|envelope/i, title: 'Email' },
+			{ pattern: /icon[-_]?phone|phone[-_]?icon|telefone|call/i, title: 'Telefone' },
+			{ pattern: /icon[-_]?download/i, title: 'Baixar' },
+			{ pattern: /icon[-_]?upload/i, title: 'Enviar arquivo' },
+			{ pattern: /icon[-_]?edit|edit[-_]?icon|pencil|lápis/i, title: 'Editar' },
+			{ pattern: /icon[-_]?delete|delete[-_]?icon|trash|lixo/i, title: 'Excluir' },
+			{ pattern: /icon[-_]?add|add[-_]?icon|plus|\+/i, title: 'Adicionar' },
+			{ pattern: /icon[-_]?check|check[-_]?icon|tick/i, title: 'Confirmar' },
+			{ pattern: /icon[-_]?arrow[-_]?left|prev|anterior/i, title: 'Anterior' },
+			{ pattern: /icon[-_]?arrow[-_]?right|next|próximo/i, title: 'Próximo' },
+			{ pattern: /icon[-_]?play/i, title: 'Reproduzir' },
+			{ pattern: /icon[-_]?pause/i, title: 'Pausar' },
+			{ pattern: /icon[-_]?share|compartilhar/i, title: 'Compartilhar' },
+			{ pattern: /icon[-_]?link/i, title: 'Copiar link' },
+			{ pattern: /icon[-_]?copy|copiar/i, title: 'Copiar' },
+			{ pattern: /icon[-_]?save|salvar/i, title: 'Salvar' },
+			{ pattern: /icon[-_]?print|imprimir/i, title: 'Imprimir' },
+			{ pattern: /icon[-_]?location|pin|mapa/i, title: 'Localização' },
+			{ pattern: /icon[-_]?calendar|calendário/i, title: 'Calendário' },
+			{ pattern: /icon[-_]?clock|relógio|hora/i, title: 'Horário' },
+			{ pattern: /icon[-_]?lock|cadeado|seguro/i, title: 'Segurança' },
+			{ pattern: /icon[-_]?eye|visualizar|olho/i, title: 'Visualizar' },
+			{ pattern: /icon[-_]?info|informação/i, title: 'Informações' },
+			{ pattern: /icon[-_]?help|ajuda/i, title: 'Ajuda' },
+			{ pattern: /icon[-_]?chat|message|mensagem/i, title: 'Mensagens' },
+			{ pattern: /icon[-_]?logout|sair/i, title: 'Sair' },
+			{ pattern: /icon[-_]?login|entrar/i, title: 'Entrar' }
+		];
+
+		for (const { pattern, title } of iconPatterns) {
+			if (pattern.test(srcLower) || pattern.test(lower)) {
+				return { isDecorative: false, titleText: title, descText: '' };
+			}
+		}
+
+		// =====================================================
+		// FASE 3: Detectar logos e marcas
+		// =====================================================
+		
+		const logoPatterns = [
+			/logo[-_]?/i,
+			/brand[-_]?/i,
+			/marca[-_]?/i,
+			/[-_]logo\./i,
+			/[-_]brand\./i
+		];
+		
+		for (const pattern of logoPatterns) {
+			if (pattern.test(srcLower)) {
+				// Extrair nome da marca do arquivo
+				const brandMatch = srcLower.match(/logo[-_]?([a-z0-9]+)/i) || 
+				                   srcLower.match(/([a-z0-9]+)[-_]?logo/i);
+				const brandName = brandMatch ? brandMatch[1].charAt(0).toUpperCase() + brandMatch[1].slice(1) : '';
+				return { 
+					isDecorative: false, 
+					titleText: brandName ? `Logo ${brandName}` : 'Logo da empresa',
+					descText: '' 
+				};
+			}
+		}
+
+		// =====================================================
+		// FASE 4: Detectar tipos de imagem pelo nome
+		// =====================================================
+		
+		const contentPatterns: Array<{ pattern: RegExp; prefix: string }> = [
+			{ pattern: /banner[-_]?/i, prefix: 'Banner promocional' },
+			{ pattern: /hero[-_]?/i, prefix: 'Imagem principal' },
+			{ pattern: /product[-_]?|produto[-_]?/i, prefix: 'Produto' },
+			{ pattern: /team[-_]?|equipe[-_]?/i, prefix: 'Membro da equipe' },
+			{ pattern: /testimonial[-_]?|depoimento[-_]?/i, prefix: 'Depoimento de cliente' },
+			{ pattern: /gallery[-_]?|galeria[-_]?/i, prefix: 'Imagem da galeria' },
+			{ pattern: /slide[-_]?|carousel[-_]?/i, prefix: 'Slide' },
+			{ pattern: /thumbnail[-_]?|thumb[-_]?/i, prefix: 'Miniatura' },
+			{ pattern: /avatar[-_]?/i, prefix: 'Foto de perfil' },
+			{ pattern: /photo[-_]?|foto[-_]?/i, prefix: 'Fotografia' },
+			{ pattern: /chart[-_]?|graph[-_]?|gráfico[-_]?/i, prefix: 'Gráfico' },
+			{ pattern: /diagram[-_]?|diagrama[-_]?/i, prefix: 'Diagrama' },
+			{ pattern: /map[-_]?|mapa[-_]?/i, prefix: 'Mapa' },
+			{ pattern: /infographic[-_]?|infográfico[-_]?/i, prefix: 'Infográfico' }
+		];
+
+		for (const { pattern, prefix } of contentPatterns) {
+			if (pattern.test(srcLower)) {
+				const desc = fileNameNoExt.replace(pattern, '').trim();
+				return { 
+					isDecorative: false, 
+					titleText: desc ? `${prefix}: ${desc}` : prefix,
+					descText: '' 
+				};
+			}
+		}
+
+		// =====================================================
+		// FASE 5: Fallback - usar nome do arquivo
+		// =====================================================
+		
+		if (fileNameNoExt && fileNameNoExt.length > 2) {
+			// Limpar e formatar o nome do arquivo
+			const cleanName = fileNameNoExt
+				.replace(/[0-9]+/g, ' ')  // remover números
+				.replace(/\s+/g, ' ')     // normalizar espaços
+				.trim();
+			
+			if (cleanName.length > 2) {
+				return { 
+					isDecorative: false, 
+					titleText: cleanName.charAt(0).toUpperCase() + cleanName.slice(1),
+					descText: '' 
+				};
+			}
+		}
+
+		// Não foi possível determinar - retornar placeholder para revisão manual
+		return { 
+			isDecorative: false, 
+			titleText: '[Descrição da imagem]',
+			descText: '' 
+		};
 	}
 
 	/**

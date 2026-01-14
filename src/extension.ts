@@ -1,13 +1,14 @@
 import * as vscode from 'vscode';
 import { createIAClient } from './iaClient';
-import { findSvgNodes, needsAccessibility, SvgNodeRange } from './svgParser';
+import { findSvgNodes, needsAccessibility, SvgNodeRange, findImgNodes, imgNeedsAccessibility, ImgNodeRange } from './svgParser';
 
-const DIAGNOSTIC_CODE = 'svg-missing-a11y';
+const DIAGNOSTIC_CODE_SVG = 'svg-missing-a11y';
+const DIAGNOSTIC_CODE_IMG = 'img-missing-alt';
 
 let collection: vscode.DiagnosticCollection;
 
 export function activate(context: vscode.ExtensionContext) {
-	collection = vscode.languages.createDiagnosticCollection('svgA11y');
+	collection = vscode.languages.createDiagnosticCollection('a11yAssist');
 	context.subscriptions.push(collection);
 
 	const iaClient = createIAClient();
@@ -17,9 +18,11 @@ export function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 		const text = doc.getText();
-		const nodes = findSvgNodes(text);
 		const diags: vscode.Diagnostic[] = [];
-		nodes.forEach((n) => {
+		
+		// Diagnósticos para SVG
+		const svgNodes = findSvgNodes(text);
+		svgNodes.forEach((n) => {
 			if (needsAccessibility(n)) {
 				const range = new vscode.Range(doc.positionAt(n.start), doc.positionAt(n.tagOpenRange.end));
 				const diag = new vscode.Diagnostic(
@@ -27,11 +30,28 @@ export function activate(context: vscode.ExtensionContext) {
 					'SVG sem <title>/<desc> ou aria-hidden: potencial falha de acessibilidade.',
 					vscode.DiagnosticSeverity.Warning
 				);
-				diag.source = 'SVG A11Y Assist';
-				diag.code = DIAGNOSTIC_CODE;
+				diag.source = 'A11Y Assist';
+				diag.code = DIAGNOSTIC_CODE_SVG;
 				diags.push(diag);
 			}
 		});
+		
+		// Diagnósticos para IMG
+		const imgNodes = findImgNodes(text);
+		imgNodes.forEach((n) => {
+			if (imgNeedsAccessibility(n)) {
+				const range = new vscode.Range(doc.positionAt(n.start), doc.positionAt(n.end));
+				const diag = new vscode.Diagnostic(
+					range,
+					'Imagem sem atributo alt: violação WCAG 1.1.1 (Conteúdo Não-textual).',
+					vscode.DiagnosticSeverity.Warning
+				);
+				diag.source = 'A11Y Assist';
+				diag.code = DIAGNOSTIC_CODE_IMG;
+				diags.push(diag);
+			}
+		});
+		
 		collection.set(doc.uri, diags);
 	}
 
@@ -46,19 +66,30 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.workspace.onDidOpenTextDocument(refreshDiagnostics)
 	);
 
+	// Registrar CodeActionProvider para SVG e IMG
 	context.subscriptions.push(
 		vscode.languages.registerCodeActionsProvider(
 			[{ language: 'html' }, { language: 'javascriptreact' }, { language: 'typescriptreact' }],
-			new SvgA11yCodeActionProvider(iaClient),
+			new A11yCodeActionProvider(iaClient),
 			{ providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
 		)
 	);
 
+	// Comando para corrigir SVG
 	context.subscriptions.push(
-		vscode.commands.registerCommand('svgA11yAssist.generateAccessibility', async (diagnosticRange?: vscode.Range) => {
+		vscode.commands.registerCommand('a11yAssist.fixSvg', async (diagnosticRange?: vscode.Range) => {
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) return;
-			await applyFixForEditor(editor, iaClient, diagnosticRange);
+			await applyFixForSvg(editor, iaClient, diagnosticRange);
+		})
+	);
+
+	// Comando para corrigir IMG
+	context.subscriptions.push(
+		vscode.commands.registerCommand('a11yAssist.fixImg', async (diagnosticRange?: vscode.Range) => {
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) return;
+			await applyFixForImg(editor, iaClient, diagnosticRange);
 		})
 	);
 }
@@ -67,7 +98,7 @@ export function deactivate() {
 	collection?.dispose();
 }
 
-class SvgA11yCodeActionProvider implements vscode.CodeActionProvider {
+class A11yCodeActionProvider implements vscode.CodeActionProvider {
 	constructor(private readonly iaClient: ReturnType<typeof createIAClient>) {}
 
 	provideCodeActions(
@@ -75,28 +106,51 @@ class SvgA11yCodeActionProvider implements vscode.CodeActionProvider {
 		range: vscode.Range | vscode.Selection,
 		context: vscode.CodeActionContext
 	): vscode.ProviderResult<vscode.CodeAction[]> {
-		const diagnostics = context.diagnostics.filter((d: vscode.Diagnostic) => d.code === DIAGNOSTIC_CODE);
-		if (!diagnostics.length) return;
+		const actions: vscode.CodeAction[] = [];
 		
-		// Criar uma ação para cada diagnóstico
-		return diagnostics.map(diagnostic => {
+		// Ações para SVG
+		const svgDiagnostics = context.diagnostics.filter((d: vscode.Diagnostic) => d.code === DIAGNOSTIC_CODE_SVG);
+		for (const diagnostic of svgDiagnostics) {
 			const action = new vscode.CodeAction(
-				'Gerar Acessibilidade para SVG com IA',
+				'🎨 Gerar acessibilidade para SVG com IA',
 				vscode.CodeActionKind.QuickFix
 			);
 			action.command = {
-				command: 'svgA11yAssist.generateAccessibility',
-				title: 'Gerar Acessibilidade para SVG com IA',
+				command: 'a11yAssist.fixSvg',
+				title: 'Gerar acessibilidade para SVG com IA',
 				arguments: [diagnostic.range]
 			};
 			action.diagnostics = [diagnostic];
 			action.isPreferred = true;
-			return action;
-		});
+			actions.push(action);
+		}
+		
+		// Ações para IMG
+		const imgDiagnostics = context.diagnostics.filter((d: vscode.Diagnostic) => d.code === DIAGNOSTIC_CODE_IMG);
+		for (const diagnostic of imgDiagnostics) {
+			const action = new vscode.CodeAction(
+				'🖼️ Gerar alt para imagem com IA',
+				vscode.CodeActionKind.QuickFix
+			);
+			action.command = {
+				command: 'a11yAssist.fixImg',
+				title: 'Gerar alt para imagem com IA',
+				arguments: [diagnostic.range]
+			};
+			action.diagnostics = [diagnostic];
+			action.isPreferred = true;
+			actions.push(action);
+		}
+		
+		return actions;
 	}
 }
 
-async function applyFixForEditor(
+// =====================================================
+// Fix para SVG
+// =====================================================
+
+async function applyFixForSvg(
 	editor: vscode.TextEditor,
 	iaClient: ReturnType<typeof createIAClient>,
 	diagnosticRange?: vscode.Range
@@ -272,4 +326,142 @@ function generateTitleId(openingTag: string): string {
 
 function escapeHtml(str: string): string {
 	return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// =====================================================
+// Fix para IMG
+// =====================================================
+
+async function applyFixForImg(
+	editor: vscode.TextEditor,
+	iaClient: ReturnType<typeof createIAClient>,
+	diagnosticRange?: vscode.Range
+) {
+	const doc = editor.document;
+	const text = doc.getText();
+	const nodes = findImgNodes(text).filter(imgNeedsAccessibility);
+	
+	if (!nodes.length) {
+		vscode.window.showInformationMessage('Nenhuma imagem elegível encontrada.');
+		return;
+	}
+	
+	// Encontrar a imagem correspondente ao diagnóstico
+	let target = nodes[0];
+	
+	if (diagnosticRange) {
+		const diagnosticStart = doc.offsetAt(diagnosticRange.start);
+		for (const n of nodes) {
+			if (n.start === diagnosticStart) {
+				target = n;
+				break;
+			}
+		}
+	} else {
+		const cursor = editor.selection.active;
+		for (const n of nodes) {
+			if (cursor.isAfterOrEqual(doc.positionAt(n.start)) && cursor.isBeforeOrEqual(doc.positionAt(n.end))) {
+				target = n;
+				break;
+			}
+		}
+	}
+
+	// Criar item na barra de status
+	const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+	statusBarItem.text = '$(sync~spin) Analisando imagem...';
+	statusBarItem.tooltip = 'A11Y Assist está analisando a imagem';
+	statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+	statusBarItem.show();
+
+	const config = vscode.workspace.getConfiguration('svgA11yAssist');
+	const useVision = config.get<boolean>('useVision') ?? false;
+
+	try {
+		await vscode.window.withProgress(
+			{ 
+				location: vscode.ProgressLocation.Notification, 
+				title: 'A11Y Assist',
+				cancellable: true 
+			},
+			async (progress, token) => {
+				progress.report({ message: 'Preparando análise...', increment: 10 });
+				
+				if (token.isCancellationRequested) return;
+
+				progress.report({ 
+					message: useVision 
+						? 'Enviando imagem para IA...' 
+						: 'Analisando nome do arquivo...', 
+					increment: 20 
+				});
+				
+				statusBarItem.text = useVision 
+					? '$(sync~spin) Enviando para IA...' 
+					: '$(sync~spin) Analisando...';
+
+				const suggestion = await iaClient.suggestForImg(target.src, target.content);
+
+				if (token.isCancellationRequested) return;
+
+				progress.report({ message: 'Aplicando correção...', increment: 50 });
+				statusBarItem.text = '$(check) Aplicando correção...';
+
+				const edit = buildWorkspaceEditForImg(doc, target, suggestion);
+				await vscode.workspace.applyEdit(edit);
+				await doc.save();
+
+				progress.report({ message: 'Concluído!', increment: 20 });
+				
+				let resultMessage: string;
+				if (suggestion.isDecorative) {
+					resultMessage = '✅ Imagem marcada como decorativa (alt="")';
+				} else {
+					resultMessage = `✅ Alt adicionado: "${suggestion.titleText}"`;
+				}
+				
+				vscode.window.showInformationMessage(resultMessage);
+			}
+		);
+	} catch (error) {
+		vscode.window.showErrorMessage(`Erro ao processar imagem: ${(error as Error).message}`);
+	} finally {
+		statusBarItem.dispose();
+	}
+}
+
+function buildWorkspaceEditForImg(
+	doc: vscode.TextDocument,
+	node: ImgNodeRange,
+	suggestion: IAResponseSuggestion
+): vscode.WorkspaceEdit {
+	const edit = new vscode.WorkspaceEdit();
+	const tagRange = new vscode.Range(
+		doc.positionAt(node.tagRange.start),
+		doc.positionAt(node.tagRange.end)
+	);
+	const tagText = doc.getText(tagRange);
+	
+	let newTag = tagText;
+	const altValue = suggestion.isDecorative ? '' : escapeHtml(suggestion.titleText?.trim() || 'Imagem');
+	
+	if (suggestion.isDecorative) {
+		// Imagem decorativa: alt="" 
+		// Adicionar alt="" antes do fechamento da tag
+		if (tagText.endsWith('/>')) {
+			newTag = tagText.replace(/\s*\/?>$/, ` alt="" />`);
+		} else {
+			newTag = tagText.replace(/\s*>$/, ` alt="">`);
+		}
+	} else {
+		// Imagem informativa: alt="descrição"
+		if (tagText.endsWith('/>')) {
+			newTag = tagText.replace(/\s*\/?>$/, ` alt="${altValue}" />`);
+		} else {
+			newTag = tagText.replace(/\s*>$/, ` alt="${altValue}">`);
+		}
+	}
+	
+	edit.replace(doc.uri, tagRange, newTag);
+	return edit;
 }
